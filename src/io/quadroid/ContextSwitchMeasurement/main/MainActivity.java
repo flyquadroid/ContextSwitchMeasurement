@@ -36,6 +36,7 @@ import java.util.List;
 public class MainActivity extends Activity implements SensorEventListener {
 
     private static final String TAG = MainActivity.class.getSimpleName()+"_OUT";
+    private static final int LIMIT = 1000;
 
     // Device
     private static TextView mTextViewDevice;
@@ -76,6 +77,12 @@ public class MainActivity extends Activity implements SensorEventListener {
     private Sensor mGyroscope;
     private Sensor mMagnetometer;
     private Sensor mBarometer;
+    private int sensorIterator;
+
+    private long[] accelerometerMeasurements = new long[LIMIT];
+    private long[] gyroscopeMeasurements = new long[LIMIT];
+    private long[] magnetometerMeasurements = new long[LIMIT];
+    private long[] barometerMeasurements = new long[LIMIT];
 
     /**
      * Called when the activity is first created.
@@ -211,6 +218,14 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         mButtonSendReport.setVisibility(View.INVISIBLE);
         detectOnlineState();
+
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        startSDKAccelerometer();
     }
 
     private void detectOnlineState() {
@@ -400,7 +415,6 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     private void startSDKAccelerometer() {
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
-
     }
 
     private void stopSDKAccelerometer() {
@@ -433,17 +447,93 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        switch (event.sensor.getType()){
+
+        switch (event.sensor.getType()) {
             case Sensor.TYPE_ACCELEROMETER:
+                if (sensorIterator < LIMIT) {
+                    accelerometerMeasurements[sensorIterator++] = System.nanoTime()-event.timestamp;
+                }  else if (sensorIterator == LIMIT) {
+                    sensorIterator = 0;
+                    stopSDKAccelerometer();
+                    Log.i(TAG, "Accelerometer: done");
+                    startSDKGyroscope();
+                }
                 break;
-            case:break;
-            case:break;
-            case:break;
+            case Sensor.TYPE_GYROSCOPE:
+                if (sensorIterator < LIMIT) {
+                    gyroscopeMeasurements[sensorIterator++] = System.nanoTime()-event.timestamp;
+                }  else if (sensorIterator == LIMIT) {
+                    sensorIterator = 0;
+                    stopSDKGyroscope();
+                    Log.i(TAG, "Gyroscope: done");
+                    startSDKMagnetometer();
+                }
+                break;
+            case Sensor.TYPE_MAGNETIC_FIELD:
+                if (sensorIterator < LIMIT) {
+                    magnetometerMeasurements[sensorIterator++] = System.nanoTime()-event.timestamp;
+                }  else if (sensorIterator == LIMIT) {
+                    sensorIterator = 0;
+                    stopSDKMagnetometer();
+                    Log.i(TAG, "Magnetometer: done");
+                    startSDKBarometer();
+                }
+                break;
+            case Sensor.TYPE_PRESSURE:
+                if (sensorIterator < LIMIT) {
+                    barometerMeasurements[sensorIterator++] = System.nanoTime()-event.timestamp;
+                }  else if (sensorIterator == LIMIT) {
+                    sensorIterator = 0;
+                    stopSDKBarometer();
+                    Log.i(TAG, "Barometer: done");
+                    calcSensorMedians();
+                }
+                break;
         }
     }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
+    }
+
+    private void calcSensorMedians() {
+
+        long accelerometer = 0;
+
+        for (long accelerometerTime : accelerometerMeasurements) {
+            accelerometer += accelerometerTime;
+        }
+
+        accelerometer /= LIMIT;
+
+        long gyroscope = 0;
+
+        for (long gyroscopeTime : gyroscopeMeasurements) {
+            gyroscope += gyroscopeTime;
+        }
+
+        gyroscope /= LIMIT;
+
+        long magnetometer = 0;
+
+        for (long magnetometerTime : magnetometerMeasurements) {
+            magnetometer += magnetometerTime;
+        }
+
+        magnetometer /= LIMIT;
+
+        long barometer = 0;
+
+        for (long barometerTime : barometerMeasurements) {
+            barometer += barometerTime;
+        }
+
+        barometer /= LIMIT;
+
+        Log.i(TAG, "Accelerometer: " + String.valueOf(accelerometer));
+        Log.i(TAG, "Gyroscope: " + String.valueOf(gyroscope));
+        Log.i(TAG, "Magnetometer: " + String.valueOf(magnetometer));
+        Log.i(TAG, "Barometer: " + String.valueOf(barometer));
     }
 }
