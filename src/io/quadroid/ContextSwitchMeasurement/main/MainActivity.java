@@ -3,6 +3,10 @@ package io.quadroid.ContextSwitchMeasurement.main;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
@@ -29,7 +33,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements SensorEventListener {
 
     private static final String TAG = MainActivity.class.getSimpleName()+"_OUT";
 
@@ -66,6 +70,12 @@ public class MainActivity extends Activity {
     // Online?
     private static boolean userIsOnline;
 
+    // Sensors
+    private SensorManager mSensorManager;
+    private Sensor mAccelerometer;
+    private Sensor mGyroscope;
+    private Sensor mMagnetometer;
+    private Sensor mBarometer;
 
     /**
      * Called when the activity is first created.
@@ -74,6 +84,14 @@ public class MainActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+
+
+        //Sensor init
+        mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+        mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        mMagnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        mBarometer = mSensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
 
         this.detectDevice();
         this.initResults();
@@ -371,4 +389,61 @@ public class MainActivity extends Activity {
         });
     }
 
+
+
+
+
+
+
+
+    // Sensor Measurement
+
+    private void startSDKAccelerometer() {
+        mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
+
+    }
+
+    private void stopSDKAccelerometer() {
+        mSensorManager.unregisterListener(this, mAccelerometer);
+    }
+
+    private void startSDKGyroscope() {
+        mSensorManager.registerListener(this, mGyroscope, SensorManager.SENSOR_DELAY_FASTEST);
+    }
+
+    private void stopSDKGyroscope() {
+        mSensorManager.unregisterListener(this, mGyroscope);
+    }
+
+    private void startSDKMagnetometer() {
+        mSensorManager.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_FASTEST);
+    }
+
+    private void stopSDKMagnetometer() {
+        mSensorManager.unregisterListener(this, mMagnetometer);
+    }
+
+    private void startSDKBarometer() {
+        mSensorManager.registerListener(this, mBarometer, SensorManager.SENSOR_DELAY_FASTEST);
+    }
+
+    private void stopSDKBarometer() {
+        mSensorManager.unregisterListener(this, mBarometer);
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        switch (event.sensor.getType()){
+            case Sensor.TYPE_ACCELEROMETER:
+                break;
+            case:break;
+            case:break;
+            case:break;
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+    }
 }
