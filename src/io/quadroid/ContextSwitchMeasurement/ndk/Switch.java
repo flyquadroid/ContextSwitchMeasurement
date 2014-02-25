@@ -5,11 +5,9 @@ package io.quadroid.ContextSwitchMeasurement.ndk;
  */
 public class Switch {
 
-    public native static boolean roundtrip(long limit);
+    public native static void jniFromJavaToC();
 
-    public native static void post(long limit);
-
-    public native static boolean get(long limit);
+    public native static void jniFromCToJava();
 
     static {
         System.loadLibrary("io_quadroid_ContextSwitchMeasurement_ndk_Switch");
