@@ -9,27 +9,19 @@ extern "C" {
 #endif
 /*
  * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
- * Method:    roundtrip
- * Signature: (J)Z
+ * Method:    jniFromJavaToC
+ * Signature: ()V
  */
-JNIEXPORT jboolean JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_roundtrip
-  (JNIEnv *, jclass, jlong);
+JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniFromJavaToC
+  (JNIEnv *, jclass);
 
 /*
  * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
- * Method:    post
- * Signature: (J)V
+ * Method:    jniFromCToJava
+ * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_post
-  (JNIEnv *, jclass, jlong);
-
-/*
- * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
- * Method:    get
- * Signature: (J)Z
- */
-JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_get
-  (JNIEnv *, jclass, jlong);
+JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniFromCToJava
+  (JNIEnv *, jclass);
 
 #ifdef __cplusplus
 }

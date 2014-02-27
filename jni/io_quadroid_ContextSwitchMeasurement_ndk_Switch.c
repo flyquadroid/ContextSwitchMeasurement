@@ -8,6 +8,8 @@
 #define JNI_TRUE 1
 #define DEBUG 0
 
+#define JNI_LIMIT 100000
+
 #include "io_quadroid_ContextSwitchMeasurement_ndk_Switch.h"
 
 
@@ -28,25 +30,11 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved){
 
 /*
  * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
- * Method:    roundtrip
- * Signature: (J)Z
- */
-JNIEXPORT jboolean JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_roundtrip(JNIEnv *env, jclass clazz, jlong limit){
-    if((rounds++)<limit){
-        return JNI_TRUE;
-    }
-    rounds = 0;
-    return JNI_FALSE;
-}
-
-
-/*
- * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
- * Method:    post
+ * Method:    jniFromJavaToC
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_post(JNIEnv *env, jclass clazz, jlong limit){
-    if(rounds==(limit-1)){
+JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniFromJavaToC(JNIEnv *env, jclass clazz){
+    if(rounds==(JNI_LIMIT-1)){
 
         int status = (*env)->GetJavaVM(env, &jvm);
         if(status != 0) {
@@ -79,10 +67,10 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_post
 
 /*
  * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
- * Method:    get
+ * Method:    jniFromCToJava
  * Signature: (J)Z
  */
-JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_get(JNIEnv *env, jclass clazz, jlong limit){
+JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniFromCToJava(JNIEnv *env, jclass clazz){
 
     int status = (*env)->GetJavaVM(env, &jvm);
     if(status != 0) {
@@ -111,7 +99,7 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_get(
         }
 
         long i;
-        for(i=0; i<limit-1; i=i+1){
+        for(i=0; i<JNI_LIMIT-1; i=i+1){
             (*env)->CallStaticVoidMethod(env, mClassTest, mMethodDummy);
         }
 

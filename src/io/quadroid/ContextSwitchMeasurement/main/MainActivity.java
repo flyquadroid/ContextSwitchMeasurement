@@ -1,14 +1,11 @@
 package io.quadroid.ContextSwitchMeasurement.main;
 
 import android.app.Activity;
-import android.content.Context;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -36,7 +33,9 @@ import java.util.List;
 public class MainActivity extends Activity implements SensorEventListener {
 
     private static final String TAG = MainActivity.class.getSimpleName()+"_OUT";
-    private static final int LIMIT = 1000;
+    private static final int LIMIT = 100;
+
+    private final static int JNI_LIMIT = 100000;
 
     // Device
     private static TextView mTextViewDevice;
@@ -53,7 +52,6 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     // Tests
     private static boolean flagFromJavaToC;
-    private static EditText mEditTextCycles;
     private static TextView mTextViewResultFromJavaToC;
     private static TextView mTextViewResultFromCToJava;
     private static TextView mTextViewSublineResultFromJavaToC;
@@ -104,7 +102,6 @@ public class MainActivity extends Activity implements SensorEventListener {
         this.initResults();
 
         mScrollView = (ScrollView) findViewById(R.id.scrollView);
-        mEditTextCycles = (EditText)findViewById(R.id.editTextCycles);
         mTextViewResultFromJavaToC = (TextView)findViewById(R.id.textViewResultFromJavaToC);
         mTextViewResultFromCToJava = (TextView)findViewById(R.id.textViewResultFromCToJava);
         mTextViewSublineResultFromJavaToC = (TextView)findViewById(R.id.textViewSublineResultJavaToC);
@@ -122,12 +119,6 @@ public class MainActivity extends Activity implements SensorEventListener {
                 int selectedId = mRadioGroupTestMode.getCheckedRadioButtonId();
                 mRadioButtonTestMode = (RadioButton) findViewById(selectedId);
 
-                long numberOfCycles = Long.valueOf(mEditTextCycles.getText().toString());
-                if(numberOfCycles<1){
-                    numberOfCycles = 1;
-                    mEditTextCycles.setText("1");
-                }
-
                 disableActions();
 
                 mTextViewResultFromCToJava.setTextColor(Color.WHITE);
@@ -137,14 +128,14 @@ public class MainActivity extends Activity implements SensorEventListener {
 
                 switch(mRadioButtonTestMode.getId()){
                     case R.id.radioButtonFromJavaToC:
-                        resultFromJavaToC.cycles = numberOfCycles;
+                        resultFromJavaToC.cycles = MainActivity.JNI_LIMIT;
                         MainActivity.flagFromJavaToC = true;
-                        runPosts(numberOfCycles);
+                        runPosts(MainActivity.JNI_LIMIT);
                         break;
                     case R.id.radioButtonFromCToJava:
-                        resultFromCToJava.cycles = numberOfCycles;
+                        resultFromCToJava.cycles = MainActivity.JNI_LIMIT;
                         MainActivity.flagFromJavaToC = false;
-                        runGets(numberOfCycles);
+                        runGets();
                         break;
                 }
             }
@@ -330,19 +321,19 @@ public class MainActivity extends Activity implements SensorEventListener {
         mTextViewDeviceManufacturer.setText(Build.MANUFACTURER);
     }
 
-    private void runPosts(long limit){
+    private void runPosts(int limit){
         if(!Test.isRunning()){
             Test.start();
-            for(long i=0; i<limit; i++){
-                Switch.post(limit);
+            for(int i=0; i<limit; i++){
+                Switch.jniFromJavaToC();
             }
         }
     }
 
-    private void runGets(long limit){
+    private void runGets(){
         if(!Test.isRunning()){
             Test.start();
-            Switch.get(limit);
+            Switch.jniFromCToJava();
         }
     }
 
@@ -357,7 +348,6 @@ public class MainActivity extends Activity implements SensorEventListener {
     private static void enableActions(){
         mRadioGroupTestMode.setEnabled(true);
         mButtonRunTest.setEnabled(true);
-        mEditTextCycles.setEnabled(true);
 
         if(resultFromJavaToC.time>0 && resultFromCToJava.time>0 && resultFromJavaToC.cycles==resultFromCToJava.cycles){
             mButtonSendReport.setEnabled(true);
@@ -370,12 +360,11 @@ public class MainActivity extends Activity implements SensorEventListener {
     private static void disableActions(){
         mRadioGroupTestMode.setEnabled(false);
         mButtonRunTest.setEnabled(false);
-        mEditTextCycles.setEnabled(false);
         mButtonSendReport.setEnabled(false);
     }
 
     protected static void updateView(){
-        long time = (Test.time/Long.valueOf(mEditTextCycles.getText().toString()));
+        long time = (Test.time/MainActivity.JNI_LIMIT);
 
         int colorBlue = Color.parseColor("#33b5e5");
 
