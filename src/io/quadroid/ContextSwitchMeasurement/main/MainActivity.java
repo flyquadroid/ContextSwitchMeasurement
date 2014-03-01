@@ -186,10 +186,10 @@ public class MainActivity extends Activity implements SensorEventListener {
                                 pairs.add(new BasicNameValuePair("memory_usage", mTextViewDeviceMemoryUsage.getText().toString()));
                                 pairs.add(new BasicNameValuePair("android", mTextViewDeviceAndroid.getText().toString()));
                                 pairs.add(new BasicNameValuePair("kernel", mTextViewDeviceKernel.getText().toString()));
-                                pairs.add(new BasicNameValuePair("from_java_to_c", String.valueOf(resultFromJavaToC.time)));
-                                pairs.add(new BasicNameValuePair("from_c_to_java", String.valueOf(resultFromCToJava.time)));
-                                long delta = (resultFromJavaToC.time>=resultFromCToJava.time)?(resultFromJavaToC.time-resultFromCToJava.time):(resultFromCToJava.time-resultFromJavaToC.time);
-                                pairs.add(new BasicNameValuePair("delta", String.valueOf(delta)));
+                                pairs.add(new BasicNameValuePair("jni_from_java_to_c", String.valueOf(resultFromJavaToC.time)));
+                                pairs.add(new BasicNameValuePair("jni_from_c_to_java", String.valueOf(resultFromCToJava.time)));
+                                long jni_delta = (resultFromJavaToC.time>=resultFromCToJava.time)?(resultFromJavaToC.time-resultFromCToJava.time):(resultFromCToJava.time-resultFromJavaToC.time);
+                                pairs.add(new BasicNameValuePair("jni_delta", String.valueOf(jni_delta)));
                                 pairs.add(new BasicNameValuePair("cycles", String.valueOf(resultFromJavaToC.cycles)));
                                 httppost.setEntity(new UrlEncodedFormEntity(pairs));
 
