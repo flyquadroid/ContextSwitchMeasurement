@@ -496,7 +496,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         if(!Test.isRunning()){
             Test.start();
             for(int i=0; i<limit; i++){
-                //Switch.jniFromJavaToC();
+                Switch.jniFromJavaToC();
             }
         }
     }
@@ -504,7 +504,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     private void runGets(){
         if(!Test.isRunning()){
             Test.start();
-            //Switch.jniFromCToJava();
+            Switch.jniFromCToJava();
         }
     }
 
