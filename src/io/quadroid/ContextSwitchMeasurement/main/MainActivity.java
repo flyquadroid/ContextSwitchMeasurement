@@ -171,7 +171,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
                             try {
                                 // Add your data
-                                List<NameValuePair> pairs = new ArrayList<NameValuePair>(18);
+                                List<NameValuePair> pairs = new ArrayList<NameValuePair>(33);
                                 pairs.add(new BasicNameValuePair("model", mTextViewDeviceModel.getText().toString()));
                                 pairs.add(new BasicNameValuePair("brand", mTextViewDeviceBrand.getText().toString()));
                                 pairs.add(new BasicNameValuePair("product", mTextViewDeviceProduct.getText().toString()));
@@ -190,18 +190,30 @@ public class MainActivity extends Activity implements SensorEventListener {
                                 pairs.add(new BasicNameValuePair("jni_from_c_to_java", String.valueOf(resultFromCToJava.time)));
                                 long jni_delta = (resultFromJavaToC.time>=resultFromCToJava.time)?(resultFromJavaToC.time-resultFromCToJava.time):(resultFromCToJava.time-resultFromJavaToC.time);
                                 pairs.add(new BasicNameValuePair("jni_delta", String.valueOf(jni_delta)));
-                                pairs.add(new BasicNameValuePair("cycles", String.valueOf(resultFromJavaToC.cycles)));
+
+                                pairs.add(new BasicNameValuePair("acce_latency_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("acce_latency_ndk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("acce_freq_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("acce_freq_ndk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("gyro_latency_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("gyro_latency_ndk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("gyro_freq_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("gyro_freq_ndk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("magnetometer_latency_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("magnetometer_latency_ndk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("magnetometer_freq_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("magnetometer_freq_ndk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("barometer_latency_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("barometer_latency_ndk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("barometer_freq_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("barometer_freq_ndk", String.valueOf(0)));
                                 httppost.setEntity(new UrlEncodedFormEntity(pairs));
 
                                 HttpResponse response = httpclient.execute(httppost);
-                                if(response.getStatusLine().getStatusCode()==200){
-                                    boolean successfulTransmission = Boolean.valueOf(EntityUtils.toString(response.getEntity()));
-                                    if(successfulTransmission==true){
-                                        // Log.d(MainActivity.TAG, "Saved!");
-                                        mButtonSendReport.setText("Thanks ✔");
-                                        resultFromJavaToC.reset();
-                                        resultFromCToJava.reset();
-                                    }
+                                if(Integer.valueOf(response.getStatusLine().getStatusCode())==200){
+                                    // mButtonSendReport.setText("Thanks ✔");
+                                    resultFromJavaToC.reset();
+                                    resultFromCToJava.reset();
                                 }
 
                                 // Log.d(MainActivity.TAG, "HTTP StatusCode: " + String.valueOf(response.getStatusLine().getStatusCode()));
