@@ -171,7 +171,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
                             try {
                                 // Add your data
-                                List<NameValuePair> pairs = new ArrayList<NameValuePair>(13);
+                                List<NameValuePair> pairs = new ArrayList<NameValuePair>(18);
                                 pairs.add(new BasicNameValuePair("model", mTextViewDeviceModel.getText().toString()));
                                 pairs.add(new BasicNameValuePair("brand", mTextViewDeviceBrand.getText().toString()));
                                 pairs.add(new BasicNameValuePair("product", mTextViewDeviceProduct.getText().toString()));
