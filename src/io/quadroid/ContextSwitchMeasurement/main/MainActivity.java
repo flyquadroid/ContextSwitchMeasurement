@@ -481,8 +481,10 @@ public class MainActivity extends Activity implements SensorEventListener {
 			//get linux kernel version from 1st line of /proc/version
 			version = reader.readLine();
 			
-			//get only version number and build return string
-			version = (String) version.subSequence(14, 22);
+			//split String to get Kernel version number and build return String
+			String[] subs = version.split(" ");
+			version = subs[2];
+			
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
