@@ -23,6 +23,22 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniF
 JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniFromCToJava
   (JNIEnv *, jclass);
 
+/*
+ * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
+ * Method:    jniStartAccelerometer
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartAccelerometer
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
+ * Method:    jniStopAccelerometer
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStopAccelerometer
+  (JNIEnv *, jclass);
+
 #ifdef __cplusplus
 }
 #endif

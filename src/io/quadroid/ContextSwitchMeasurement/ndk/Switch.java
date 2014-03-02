@@ -9,6 +9,10 @@ public class Switch {
 
     public native static void jniFromCToJava();
 
+    public native static void jniStartAccelerometer();
+
+    public native static void jniStopAccelerometer();
+
     static {
         System.loadLibrary("io_quadroid_ContextSwitchMeasurement_ndk_Switch");
     }
