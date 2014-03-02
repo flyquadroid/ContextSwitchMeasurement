@@ -117,6 +117,61 @@
                   android:textAppearance="?android:attr/textAppearanceMedium" android:text="-"
                   android:id="@+id/textViewDeviceCpuAbi2" android:gravity="right"/>
     </LinearLayout>
+    <LinearLayout android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingLeft="2dp"
+                  android:paddingRight="2dp" android:paddingBottom="5dp" android:id="@+id/linearLayoutCpuFrequency"
+                  android:layout_gravity="center_horizontal">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceMedium" android:text="CPU Frequency:"
+                  android:id="@+id/textViewLabelCpuFrequency" android:textSize="20dp" android:paddingRight="15dp"
+                  android:textColor="#818181"/>
+        <TextView android:layout_width="fill_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceMedium" android:text="-"
+                  android:id="@+id/textViewDeviceCpuFrequency" android:gravity="right"/>
+    </LinearLayout>
+    <LinearLayout android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingLeft="2dp"
+                  android:paddingRight="2dp" android:paddingBottom="5dp" android:id="@+id/linearLayoutCpuUsage"
+                  android:layout_gravity="center_horizontal">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceMedium" android:text="CPU Usage:"
+                  android:id="@+id/textViewLabelCpuUsage" android:textSize="20dp" android:paddingRight="15dp"
+                  android:textColor="#818181"/>
+        <TextView android:layout_width="fill_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceMedium" android:text="-"
+                  android:id="@+id/textViewDeviceCpuUsage" android:gravity="right"/>
+    </LinearLayout>
+    <LinearLayout android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingLeft="2dp"
+                  android:paddingRight="2dp" android:paddingBottom="5dp" android:id="@+id/linearLayoutMemoryUsage"
+                  android:layout_gravity="center_horizontal">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceMedium" android:text="Memory Usage:"
+                  android:id="@+id/textViewLabelMemoryUsage" android:textSize="20dp" android:paddingRight="15dp"
+                  android:textColor="#818181"/>
+        <TextView android:layout_width="fill_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceMedium" android:text="-"
+                  android:id="@+id/textViewDeviceMemoryUsage" android:gravity="right"/>
+    </LinearLayout>
+     <LinearLayout android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingLeft="2dp"
+                  android:paddingRight="2dp" android:paddingBottom="5dp" android:id="@+id/linearLayoutAndroid"
+                  android:layout_gravity="center_horizontal">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceMedium" android:text="Android Version:"
+                  android:id="@+id/textViewLabelAndroid" android:textSize="20dp" android:paddingRight="15dp"
+                  android:textColor="#818181"/>
+        <TextView android:layout_width="fill_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceMedium" android:text="-"
+                  android:id="@+id/textViewDeviceAndroid" android:gravity="right"/>
+    </LinearLayout>
+     <LinearLayout android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingLeft="2dp"
+                  android:paddingRight="2dp" android:paddingBottom="5dp" android:id="@+id/linearLayoutKernel"
+                  android:layout_gravity="center_horizontal">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceMedium" android:text="Kernel Version:"
+                  android:id="@+id/textViewLabelKernel" android:textSize="20dp" android:paddingRight="15dp"
+                  android:textColor="#818181"/>
+        <TextView android:layout_width="fill_parent" android:layout_height="wrap_content"
+                  android:textAppearance="?android:attr/textAppearanceMedium" android:text="-"
+                  android:id="@+id/textViewDeviceKernel" android:gravity="right"/>
+    </LinearLayout>
     <TextView
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"

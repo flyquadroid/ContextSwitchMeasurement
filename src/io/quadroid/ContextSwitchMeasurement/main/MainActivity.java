@@ -12,6 +12,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.Animation;
 import android.widget.*;
 import io.quadroid.ContextSwitchMeasurement.R;
 import io.quadroid.ContextSwitchMeasurement.ndk.Switch;
@@ -26,7 +27,10 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,7 +51,13 @@ public class MainActivity extends Activity implements SensorEventListener {
     private static TextView mTextViewDeviceHardware;        // The name of the hardware (from the kernel command line or /proc).
     private static TextView mTextViewDeviceProduct;         // The name of the overall product.
     private static TextView mTextViewDeviceManufacturer;    // The manufacturer of the product/hardware.
-
+    private static TextView	mTextViewDeviceAndroid;			// The Android version
+    private static TextView	mTextViewDeviceKernel;			// The linux kernel version
+    private static TextView mTextViewDeviceCpuUsage;		// How much of the Cpu is used currently
+    private static TextView mTextViewDeviceMemoryUsage;		// How much of the Memory is used currently
+    private static TextView mTextViewDeviceCpuFrequency;	// The cpu frequency / clockrate
+    
+    
     private static ScrollView mScrollView;
 
     // Tests
@@ -161,7 +171,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
                             try {
                                 // Add your data
-                                List<NameValuePair> pairs = new ArrayList<NameValuePair>(13);
+                                List<NameValuePair> pairs = new ArrayList<NameValuePair>(33);
                                 pairs.add(new BasicNameValuePair("model", mTextViewDeviceModel.getText().toString()));
                                 pairs.add(new BasicNameValuePair("brand", mTextViewDeviceBrand.getText().toString()));
                                 pairs.add(new BasicNameValuePair("product", mTextViewDeviceProduct.getText().toString()));
@@ -171,22 +181,39 @@ public class MainActivity extends Activity implements SensorEventListener {
                                 pairs.add(new BasicNameValuePair("board", mTextViewDeviceBoard.getText().toString()));
                                 pairs.add(new BasicNameValuePair("cpu_abi", mTextViewDeviceCpuAbi.getText().toString()));
                                 pairs.add(new BasicNameValuePair("cpu_abi_2", mTextViewDeviceCpuAbi2.getText().toString()));
-                                pairs.add(new BasicNameValuePair("from_java_to_c", String.valueOf(resultFromJavaToC.time)));
-                                pairs.add(new BasicNameValuePair("from_c_to_java", String.valueOf(resultFromCToJava.time)));
-                                long delta = (resultFromJavaToC.time>=resultFromCToJava.time)?(resultFromJavaToC.time-resultFromCToJava.time):(resultFromCToJava.time-resultFromJavaToC.time);
-                                pairs.add(new BasicNameValuePair("delta", String.valueOf(delta)));
-                                pairs.add(new BasicNameValuePair("cycles", String.valueOf(resultFromJavaToC.cycles)));
+                                pairs.add(new BasicNameValuePair("cpu_freq", mTextViewDeviceCpuFrequency.getText().toString()));
+                                pairs.add(new BasicNameValuePair("cpu_usage", mTextViewDeviceCpuUsage.getText().toString()));
+                                pairs.add(new BasicNameValuePair("memory_usage", mTextViewDeviceMemoryUsage.getText().toString()));
+                                pairs.add(new BasicNameValuePair("android", mTextViewDeviceAndroid.getText().toString()));
+                                pairs.add(new BasicNameValuePair("kernel", mTextViewDeviceKernel.getText().toString()));
+                                pairs.add(new BasicNameValuePair("jni_from_java_to_c", String.valueOf(resultFromJavaToC.time)));
+                                pairs.add(new BasicNameValuePair("jni_from_c_to_java", String.valueOf(resultFromCToJava.time)));
+                                long jni_delta = (resultFromJavaToC.time>=resultFromCToJava.time)?(resultFromJavaToC.time-resultFromCToJava.time):(resultFromCToJava.time-resultFromJavaToC.time);
+                                pairs.add(new BasicNameValuePair("jni_delta", String.valueOf(jni_delta)));
+
+                                pairs.add(new BasicNameValuePair("acce_latency_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("acce_latency_ndk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("acce_freq_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("acce_freq_ndk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("gyro_latency_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("gyro_latency_ndk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("gyro_freq_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("gyro_freq_ndk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("magnetometer_latency_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("magnetometer_latency_ndk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("magnetometer_freq_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("magnetometer_freq_ndk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("barometer_latency_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("barometer_latency_ndk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("barometer_freq_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("barometer_freq_ndk", String.valueOf(0)));
                                 httppost.setEntity(new UrlEncodedFormEntity(pairs));
 
                                 HttpResponse response = httpclient.execute(httppost);
-                                if(response.getStatusLine().getStatusCode()==200){
-                                    boolean successfulTransmission = Boolean.valueOf(EntityUtils.toString(response.getEntity()));
-                                    if(successfulTransmission==true){
-                                        // Log.d(MainActivity.TAG, "Saved!");
-                                        mButtonSendReport.setText("Thanks ✔");
-                                        resultFromJavaToC.reset();
-                                        resultFromCToJava.reset();
-                                    }
+                                if(Integer.valueOf(response.getStatusLine().getStatusCode())==200){
+                                    // mButtonSendReport.setText("Thanks ✔");
+                                    resultFromJavaToC.reset();
+                                    resultFromCToJava.reset();
                                 }
 
                                 // Log.d(MainActivity.TAG, "HTTP StatusCode: " + String.valueOf(response.getStatusLine().getStatusCode()));
@@ -299,6 +326,18 @@ public class MainActivity extends Activity implements SensorEventListener {
         mTextViewDeviceCpuAbi.setText(Build.CPU_ABI);
         mTextViewDeviceCpuAbi2 = (TextView)findViewById(R.id.textViewDeviceCpuAbi2);
         mTextViewDeviceCpuAbi2.setText(Build.CPU_ABI2);
+        
+        //CPU Frequency
+        mTextViewDeviceCpuFrequency = (TextView) findViewById(R.id.textViewDeviceCpuFrequency);
+        mTextViewDeviceCpuFrequency.setText(getCpuFrequency());
+        
+        //CPU Usage:
+        mTextViewDeviceCpuUsage = (TextView) findViewById(R.id.textViewDeviceCpuUsage);
+        mTextViewDeviceCpuUsage.setText(getCpuUsage());
+        
+        //Memory Usage:
+        mTextViewDeviceMemoryUsage = (TextView) findViewById(R.id.textViewDeviceMemoryUsage);
+        mTextViewDeviceMemoryUsage.setText(getMemoryUsage());
 
         // Device
         mTextViewDevice = (TextView)findViewById(R.id.textViewDevice);
@@ -319,9 +358,143 @@ public class MainActivity extends Activity implements SensorEventListener {
         // Manufacturer
         mTextViewDeviceManufacturer = (TextView)findViewById(R.id.textViewDeviceManufacturer);
         mTextViewDeviceManufacturer.setText(Build.MANUFACTURER);
+        
+        //Android Version
+        mTextViewDeviceAndroid = (TextView) findViewById(R.id.textViewDeviceAndroid);
+        mTextViewDeviceAndroid.setText(Build.VERSION.RELEASE);
+        
+        //Kernel Version
+        mTextViewDeviceKernel = (TextView)findViewById(R.id.textViewDeviceKernel);
+        mTextViewDeviceKernel.setText(getKernelVersion());
+
     }
 
-    private void runPosts(int limit){
+	private String getCpuFrequency() {
+		
+		//return String returns 0 if an exception is thrown
+		String cpuFrequency = "0";
+		
+		try {
+			//read file /sys/devices/system/cpu/cpu0/cpufreq/stats/time_in_state
+			RandomAccessFile reader = new RandomAccessFile( "/sys/devices/system/cpu/cpu0/cpufreq/stats/time_in_state", "r" );
+			
+			//iterate through file until highest frequency is reched (end of the file)
+			boolean done = false;
+			
+			while(!done){
+				String line = reader.readLine();
+				if(line != null){
+					cpuFrequency = line;
+				}
+				else{
+					done = true;
+				}
+			}
+			
+			//format return String
+			cpuFrequency = cpuFrequency.substring(0, cpuFrequency.indexOf(" ")-3) + " MHz";
+
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		
+		return cpuFrequency;
+	}
+
+	private String getMemoryUsage() {
+
+		//return String returns 0 if an exception is thrown
+		String memUsage = "0";
+		
+		try {
+			
+			//read file /proc/meminfo
+			RandomAccessFile reader = new RandomAccessFile("/proc/meminfo", "r");
+
+			//get total memory from 1st line of /proc/meminfo
+			String memTotal = reader.readLine();
+			memTotal = (memTotal.substring(memTotal.indexOf(":")+1,memTotal.length()-2)).trim();
+			
+			//get free memory from 2nd line of /proc/meminfo
+			String memFree = reader.readLine();
+			memFree = (memFree.substring(memFree.indexOf(":")+1,memFree.length()-2)).trim();
+
+			//calculate used memory and build string to display
+			String memUsed = String.valueOf((Integer.parseInt(memTotal) - Integer.parseInt(memFree)));
+			memUsage = memUsed + " / " + memTotal + " KB";
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return memUsage;
+	}
+
+	private String getCpuUsage() {
+		
+		//return String returns 0 if an exception is thrown
+		String cpuUsage = "0";
+		
+		try {
+			//read file /proc/stat
+	        RandomAccessFile reader = new RandomAccessFile("/proc/stat", "r");
+	        
+	        //read usage values from all cpus and write to array
+	        String load = reader.readLine();      
+	        String[] toks = load.split(" ");
+
+	        //get cpu idle value
+	        long idle = Long.parseLong(toks[5]);
+	        //get used cpu value: (niced) processes in user and kernel mode
+	        long cpu = Long.parseLong(toks[2]) + Long.parseLong(toks[3]) + Long.parseLong(toks[4])
+	              + Long.parseLong(toks[6]) + Long.parseLong(toks[7]) + Long.parseLong(toks[8]);
+	        
+	        //calculate used cpu / idle ratio
+	        float usage = (((float)cpu)/((float)(idle + cpu)));
+	        
+	        //format, calculate percentage and write to return string
+	        DecimalFormat df = new DecimalFormat("##.#");
+	        cpuUsage = String.valueOf(df.format(usage*100)) + "%";
+	        
+	    } catch (IOException ex) {
+	        ex.printStackTrace();
+	    }
+		
+		return cpuUsage;
+	}
+
+	private String getKernelVersion() {
+
+		//return String returns 0 if an exception is thrown
+    	String version = "0";
+    	
+    	try {
+    		//read file /proc/version
+			RandomAccessFile reader = new RandomAccessFile("/proc/version", "r");
+			
+			//get linux kernel version from 1st line of /proc/version
+			version = reader.readLine();
+			
+			//split String to get Kernel version number and build return String
+			String[] subs = version.split(" ");
+			version = subs[2];
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+    	
+    	return version;
+	}
+
+	private void runPosts(int limit){
         if(!Test.isRunning()){
             Test.start();
             for(int i=0; i<limit; i++){
