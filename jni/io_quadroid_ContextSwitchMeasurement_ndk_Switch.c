@@ -24,7 +24,6 @@ static JavaVM* jvm;
 
 ASensorEventQueue* sensorEventQueue;
 
-static int get_sensor_events(int fd, int events, void* data);
 
 jint JNI_OnLoad(JavaVM* vm, void* reserved){
 	jvm = vm;
@@ -111,6 +110,8 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniF
         (*env)->CallStaticVoidMethod(env, mClassTest, mMethodStop);
     }
 
+}
+
 
 static int get_sensor_events(int fd, int events, void* data) {
   ASensorEvent event;
@@ -125,37 +126,51 @@ static int get_sensor_events(int fd, int events, void* data) {
   return 1;
 }
 
+
+/*
+ * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
+ * Method:    jniStartAccelerometer
+ * Signature: ()V
+ */
 JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartAccelerometer(JNIEnv *env, jclass clazz) {
 
-            ASensorEvent event;
-            int events, ident;
-            ASensorManager* sensorManager;
-            const ASensor* accSensor;
-            void* sensor_data = malloc(1000);
+    ASensorEvent event;
+    int events, ident;
+    ASensorManager* sensorManager;
+    const ASensor* accSensor;
+    void* sensor_data = malloc(1000);
 
-            LOGI("sensorValue() - ALooper_forThread()");
+    LOGI("sensorValue() - ALooper_forThread()");
 
-            ALooper* looper = ALooper_forThread();
+    ALooper* looper = ALooper_forThread();
 
-            if(looper == NULL)
-            {
-                looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
-            }
+    if(looper == NULL)
+    {
+        looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
+    }
 
-            sensorManager = ASensorManager_getInstance();
+    sensorManager = ASensorManager_getInstance();
 
-            accSensor = ASensorManager_getDefaultSensor(sensorManager, ASENSOR_TYPE_ACCELEROMETER);
+    accSensor = ASensorManager_getDefaultSensor(sensorManager, ASENSOR_TYPE_ACCELEROMETER);
 
-            sensorEventQueue = ASensorManager_createEventQueue(sensorManager, looper, 1, get_sensor_events, sensor_data);
+    sensorEventQueue = ASensorManager_createEventQueue(sensorManager, looper, 1, get_sensor_events, sensor_data);
 
-            ASensorEventQueue_enableSensor(sensorEventQueue, accSensor);
+    ASensorEventQueue_enableSensor(sensorEventQueue, accSensor);
 
-            //Sampling rate: 100Hz
-            int a = ASensor_getMinDelay(accSensor);
-            LOGI("min-delay: %d",a);
-            ASensorEventQueue_setEventRate(sensorEventQueue, accSensor, 1000000);
+    //Sampling rate: 100Hz
+    int a = ASensor_getMinDelay(accSensor);
+    LOGI("min-delay: %d",a);
+    ASensorEventQueue_setEventRate(sensorEventQueue, accSensor, 1000000);
 
-            LOGI("sensorValue() - START");
+    LOGI("sensorValue() - START");
 
-      }
 }
+
+
+/*
+ * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
+ * Method:    jniStopAccelerometer
+ * Signature: ()V
+ */
+ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStopAccelerometer(JNIEnv *env, jclass clazz){
+ }
