@@ -92,6 +92,11 @@ public class MainActivity extends Activity implements SensorEventListener {
     private long[] magnetometerMeasurements = new long[LIMIT];
     private long[] barometerMeasurements = new long[LIMIT];
 
+    long sdkAcce;
+    long sdkGyro;
+    long sdkMag;
+    long sdkBaro;
+
     /**
      * Called when the activity is first created.
      */
@@ -191,19 +196,19 @@ public class MainActivity extends Activity implements SensorEventListener {
                                 long jni_delta = (resultFromJavaToC.time>=resultFromCToJava.time)?(resultFromJavaToC.time-resultFromCToJava.time):(resultFromCToJava.time-resultFromJavaToC.time);
                                 pairs.add(new BasicNameValuePair("jni_delta", String.valueOf(jni_delta)));
 
-                                pairs.add(new BasicNameValuePair("acce_latency_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("acce_latency_sdk", String.valueOf(sdkAcce)));
                                 pairs.add(new BasicNameValuePair("acce_latency_ndk", String.valueOf(0)));
                                 pairs.add(new BasicNameValuePair("acce_freq_sdk", String.valueOf(0)));
                                 pairs.add(new BasicNameValuePair("acce_freq_ndk", String.valueOf(0)));
-                                pairs.add(new BasicNameValuePair("gyro_latency_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("gyro_latency_sdk", String.valueOf(sdkGyro)));
                                 pairs.add(new BasicNameValuePair("gyro_latency_ndk", String.valueOf(0)));
                                 pairs.add(new BasicNameValuePair("gyro_freq_sdk", String.valueOf(0)));
                                 pairs.add(new BasicNameValuePair("gyro_freq_ndk", String.valueOf(0)));
-                                pairs.add(new BasicNameValuePair("magnetometer_latency_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("magnetometer_latency_sdk", String.valueOf(sdkMag)));
                                 pairs.add(new BasicNameValuePair("magnetometer_latency_ndk", String.valueOf(0)));
                                 pairs.add(new BasicNameValuePair("magnetometer_freq_sdk", String.valueOf(0)));
                                 pairs.add(new BasicNameValuePair("magnetometer_freq_ndk", String.valueOf(0)));
-                                pairs.add(new BasicNameValuePair("barometer_latency_sdk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("barometer_latency_sdk", String.valueOf(sdkBaro)));
                                 pairs.add(new BasicNameValuePair("barometer_latency_ndk", String.valueOf(0)));
                                 pairs.add(new BasicNameValuePair("barometer_freq_sdk", String.valueOf(0)));
                                 pairs.add(new BasicNameValuePair("barometer_freq_ndk", String.valueOf(0)));
@@ -243,7 +248,8 @@ public class MainActivity extends Activity implements SensorEventListener {
     protected void onResume() {
         super.onResume();
 
-        startSDKAccelerometer();
+        //startSDKAccelerometer();
+        Switch.jniStartAccelerometer();
     }
 
     private void detectOnlineState() {

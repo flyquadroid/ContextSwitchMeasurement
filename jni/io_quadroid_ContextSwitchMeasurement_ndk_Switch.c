@@ -2,6 +2,8 @@
 
 #include <pthread.h>
 #include <android/log.h>
+#include <android/sensor.h>
+#include <android/looper.h>
 #include <time.h>
 
 #define JNI_FALSE 0
@@ -20,6 +22,9 @@
 long rounds = 0;
 static JavaVM* jvm;
 
+ASensorEventQueue* sensorEventQueue;
+
+static int get_sensor_events(int fd, int events, void* data);
 
 jint JNI_OnLoad(JavaVM* vm, void* reserved){
 	jvm = vm;
@@ -105,4 +110,52 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniF
 
         (*env)->CallStaticVoidMethod(env, mClassTest, mMethodStop);
     }
+
+
+static int get_sensor_events(int fd, int events, void* data) {
+  ASensorEvent event;
+  //ASensorEventQueue* sensorEventQueue;
+  while (ASensorEventQueue_getEvents(sensorEventQueue, &event, 1) > 0) {
+        if(event.type == ASENSOR_TYPE_ACCELEROMETER) {
+
+        LOGI("Acc-Time: %lld", event.timestamp);
+        }
+  }
+  //should return 1 to continue receiving callbacks, or 0 to unregister
+  return 1;
+}
+
+JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartAccelerometer(JNIEnv *env, jclass clazz) {
+
+            ASensorEvent event;
+            int events, ident;
+            ASensorManager* sensorManager;
+            const ASensor* accSensor;
+            void* sensor_data = malloc(1000);
+
+            LOGI("sensorValue() - ALooper_forThread()");
+
+            ALooper* looper = ALooper_forThread();
+
+            if(looper == NULL)
+            {
+                looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
+            }
+
+            sensorManager = ASensorManager_getInstance();
+
+            accSensor = ASensorManager_getDefaultSensor(sensorManager, ASENSOR_TYPE_ACCELEROMETER);
+
+            sensorEventQueue = ASensorManager_createEventQueue(sensorManager, looper, 1, get_sensor_events, sensor_data);
+
+            ASensorEventQueue_enableSensor(sensorEventQueue, accSensor);
+
+            //Sampling rate: 100Hz
+            int a = ASensor_getMinDelay(accSensor);
+            LOGI("min-delay: %d",a);
+            ASensorEventQueue_setEventRate(sensorEventQueue, accSensor, 1000000);
+
+            LOGI("sensorValue() - START");
+
+      }
 }
