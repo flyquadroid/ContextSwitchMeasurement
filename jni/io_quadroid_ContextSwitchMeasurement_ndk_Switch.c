@@ -8,9 +8,10 @@
 
 #define JNI_FALSE 0
 #define JNI_TRUE 1
-#define DEBUG 0
+#define DEBUG 1
 
 #define JNI_LIMIT 100000
+#define SENSOR_LIMIT 100
 
 #include "io_quadroid_ContextSwitchMeasurement_ndk_Switch.h"
 
@@ -22,15 +23,22 @@
 long rounds = 0;
 static JavaVM* jvm;
 
+long long accelerometerLatency[SENSOR_LIMIT] = {};
+
+long sensorRounds = 0;
 ASensorEventQueue* sensorEventQueue;
 
+long long getTimeNsec() {
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    return (long long) now.tv_sec*1000000000LL + now.tv_nsec;
+}
 
 jint JNI_OnLoad(JavaVM* vm, void* reserved){
 	jvm = vm;
     LOGI("Start: JNI_OnLoad");
 	return JNI_VERSION_1_6;
 }
-
 
 /*
  * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
@@ -118,8 +126,24 @@ static int get_sensor_events(int fd, int events, void* data) {
   //ASensorEventQueue* sensorEventQueue;
   while (ASensorEventQueue_getEvents(sensorEventQueue, &event, 1) > 0) {
         if(event.type == ASENSOR_TYPE_ACCELEROMETER) {
+            if(sensorRounds<SENSOR_LIMIT) {
+                long long diff = getTimeNsec() - event.timestamp;
 
-        LOGI("Acc-Time: %lld", event.timestamp);
+                accelerometerLatency[sensorRounds] = diff;
+                sensorRounds++;
+            } else {
+                ASensorManager_destroyEventQueue(ASensorManager_getInstance(), sensorEventQueue);
+
+                long long latencies = 0;
+
+                int i;
+                for(i = 0; i < SENSOR_LIMIT; i++) {
+                    latencies += accelerometerLatency[i];
+                }
+
+                long long average = latencies / SENSOR_LIMIT;
+                LOGI("AccelerometerLatency: %lld", average);
+            }
         }
   }
   //should return 1 to continue receiving callbacks, or 0 to unregister
@@ -133,6 +157,8 @@ static int get_sensor_events(int fd, int events, void* data) {
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartAccelerometer(JNIEnv *env, jclass clazz) {
+
+     LOGI("startAccelerometer");
 
     ASensorEvent event;
     int events, ident;

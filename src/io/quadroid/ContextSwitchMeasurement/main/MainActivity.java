@@ -37,7 +37,7 @@ import java.util.List;
 public class MainActivity extends Activity implements SensorEventListener {
 
     private static final String TAG = MainActivity.class.getSimpleName()+"_OUT";
-    private static final int LIMIT = 100;
+    private static final int SENSOR_LIMIT = 100;
 
     private final static int JNI_LIMIT = 100000;
 
@@ -87,10 +87,10 @@ public class MainActivity extends Activity implements SensorEventListener {
     private Sensor mBarometer;
     private int sensorIterator;
 
-    private long[] accelerometerMeasurements = new long[LIMIT];
-    private long[] gyroscopeMeasurements = new long[LIMIT];
-    private long[] magnetometerMeasurements = new long[LIMIT];
-    private long[] barometerMeasurements = new long[LIMIT];
+    private long[] accelerometerMeasurements = new long[SENSOR_LIMIT];
+    private long[] gyroscopeMeasurements = new long[SENSOR_LIMIT];
+    private long[] magnetometerMeasurements = new long[SENSOR_LIMIT];
+    private long[] barometerMeasurements = new long[SENSOR_LIMIT];
 
     long sdkAcce;
     long sdkGyro;
@@ -216,7 +216,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
                                 HttpResponse response = httpclient.execute(httppost);
                                 if(Integer.valueOf(response.getStatusLine().getStatusCode())==200){
-                                    // mButtonSendReport.setText("Thanks ✔");
+                                    // mButtonSendReport.setText("Thanks");
                                     resultFromJavaToC.reset();
                                     resultFromCToJava.reset();
                                 }
@@ -618,9 +618,9 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         switch (event.sensor.getType()) {
             case Sensor.TYPE_ACCELEROMETER:
-                if (sensorIterator < LIMIT) {
+                if (sensorIterator < SENSOR_LIMIT) {
                     accelerometerMeasurements[sensorIterator++] = System.nanoTime()-event.timestamp;
-                }  else if (sensorIterator == LIMIT) {
+                }  else if (sensorIterator == SENSOR_LIMIT) {
                     sensorIterator = 0;
                     stopSDKAccelerometer();
                     Log.i(TAG, "Accelerometer: done");
@@ -628,9 +628,9 @@ public class MainActivity extends Activity implements SensorEventListener {
                 }
                 break;
             case Sensor.TYPE_GYROSCOPE:
-                if (sensorIterator < LIMIT) {
+                if (sensorIterator < SENSOR_LIMIT) {
                     gyroscopeMeasurements[sensorIterator++] = System.nanoTime()-event.timestamp;
-                }  else if (sensorIterator == LIMIT) {
+                }  else if (sensorIterator == SENSOR_LIMIT) {
                     sensorIterator = 0;
                     stopSDKGyroscope();
                     Log.i(TAG, "Gyroscope: done");
@@ -638,9 +638,9 @@ public class MainActivity extends Activity implements SensorEventListener {
                 }
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
-                if (sensorIterator < LIMIT) {
+                if (sensorIterator < SENSOR_LIMIT) {
                     magnetometerMeasurements[sensorIterator++] = System.nanoTime()-event.timestamp;
-                }  else if (sensorIterator == LIMIT) {
+                }  else if (sensorIterator == SENSOR_LIMIT) {
                     sensorIterator = 0;
                     stopSDKMagnetometer();
                     Log.i(TAG, "Magnetometer: done");
@@ -648,9 +648,9 @@ public class MainActivity extends Activity implements SensorEventListener {
                 }
                 break;
             case Sensor.TYPE_PRESSURE:
-                if (sensorIterator < LIMIT) {
+                if (sensorIterator < SENSOR_LIMIT) {
                     barometerMeasurements[sensorIterator++] = System.nanoTime()-event.timestamp;
-                }  else if (sensorIterator == LIMIT) {
+                }  else if (sensorIterator == SENSOR_LIMIT) {
                     sensorIterator = 0;
                     stopSDKBarometer();
                     Log.i(TAG, "Barometer: done");
@@ -673,7 +673,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             accelerometer += accelerometerTime;
         }
 
-        accelerometer /= LIMIT;
+        accelerometer /= SENSOR_LIMIT;
 
         long gyroscope = 0;
 
@@ -681,7 +681,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             gyroscope += gyroscopeTime;
         }
 
-        gyroscope /= LIMIT;
+        gyroscope /= SENSOR_LIMIT;
 
         long magnetometer = 0;
 
@@ -689,7 +689,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             magnetometer += magnetometerTime;
         }
 
-        magnetometer /= LIMIT;
+        magnetometer /= SENSOR_LIMIT;
 
         long barometer = 0;
 
@@ -697,7 +697,7 @@ public class MainActivity extends Activity implements SensorEventListener {
             barometer += barometerTime;
         }
 
-        barometer /= LIMIT;
+        barometer /= SENSOR_LIMIT;
 
         Log.i(TAG, "Accelerometer: " + String.valueOf(accelerometer));
         Log.i(TAG, "Gyroscope: " + String.valueOf(gyroscope));
