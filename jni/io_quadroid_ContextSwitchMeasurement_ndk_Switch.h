@@ -33,10 +33,26 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniS
 
 /*
  * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
- * Method:    jniStopAccelerometer
+ * Method:    jniStartGyroscope
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStopAccelerometer
+JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartGyroscope
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
+ * Method:    jniStartMagnetometer
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartMagnetometer
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
+ * Method:    jniStartBarometer
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartBarometer
   (JNIEnv *, jclass);
 
 #ifdef __cplusplus
