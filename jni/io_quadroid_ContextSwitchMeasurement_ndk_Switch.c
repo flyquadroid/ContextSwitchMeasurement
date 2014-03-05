@@ -18,7 +18,7 @@
 
 #define TAG "io_quadroid_ContextSwitchMeasurement_ndk_Switch_OUT"
 #define LOGI(...) if(DEBUG){__android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__);}
-
+#define ASENSOR_TYPE_PRESSURE 6
 
 long rounds = 0;
 static JavaVM* jvm;
@@ -168,7 +168,7 @@ static int get_sensor_events(int fd, int events, void* data) {
                 long long average = latencies / SENSOR_LIMIT;
                 LOGI("GyroscopeLatency: %lld", average);
             }
-        case ASENSOR_TYPE_MAGNETOMETER:
+        case ASENSOR_TYPE_MAGNETIC_FIELD:
             if(sensorRounds<SENSOR_LIMIT) {
                 long long diff = getTimeNsec() - event.timestamp;
 
