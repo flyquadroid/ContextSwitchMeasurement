@@ -30,6 +30,7 @@ long long barometerLatency[SENSOR_LIMIT] = {};
 
 long sensorRounds = 0;
 ASensorEventQueue* sensorEventQueue;
+ALooper* looper;
 
 long long getTimeNsec() {
     struct timespec now;
@@ -40,6 +41,7 @@ long long getTimeNsec() {
 jint JNI_OnLoad(JavaVM* vm, void* reserved){
 	jvm = vm;
     LOGI("Start: JNI_OnLoad");
+    looper = ALooper_forThread();
 	return JNI_VERSION_1_6;
 }
 
@@ -231,7 +233,7 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniS
 
     LOGI("sensorValue() - ALooper_forThread()");
 
-    ALooper* looper = ALooper_forThread();
+    //ALooper* looper = ALooper_forThread();
 
     if(looper == NULL)
     {
@@ -272,7 +274,7 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniS
 
     LOGI("sensorValue() - ALooper_forThread()");
 
-    ALooper* looper = ALooper_forThread();
+    //ALooper* looper = ALooper_forThread();
 
     if(looper == NULL)
     {
@@ -313,7 +315,7 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniS
 
     LOGI("sensorValue() - ALooper_forThread()");
 
-    ALooper* looper = ALooper_forThread();
+    //ALooper* looper = ALooper_forThread();
 
     if(looper == NULL)
     {
@@ -354,7 +356,7 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniS
 
     LOGI("sensorValue() - ALooper_forThread()");
 
-    ALooper* looper = ALooper_forThread();
+    //ALooper* looper = ALooper_forThread();
 
     if(looper == NULL)
     {

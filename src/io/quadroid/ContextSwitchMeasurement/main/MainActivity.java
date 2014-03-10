@@ -250,7 +250,9 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         //startSDKAccelerometer();
         //Switch.jniStartAccelerometer();
-        Switch.jniStartGyroscope();
+        //Switch.jniStartGyroscope();
+        Switch.jniStartMagnetometer();
+        //Switch.jniStartBarometer();
     }
 
     private void detectOnlineState() {
