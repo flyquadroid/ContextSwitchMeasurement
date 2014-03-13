@@ -25,34 +25,18 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniF
 
 /*
  * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
- * Method:    jniStartAccelerometer
+ * Method:    jniStartLatency
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartAccelerometer
+JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartLatency
   (JNIEnv *, jclass);
 
 /*
  * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
- * Method:    jniStartGyroscope
+ * Method:    jniStartRate
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartGyroscope
-  (JNIEnv *, jclass);
-
-/*
- * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
- * Method:    jniStartMagnetometer
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartMagnetometer
-  (JNIEnv *, jclass);
-
-/*
- * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
- * Method:    jniStartBarometer
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartBarometer
+JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartRate
   (JNIEnv *, jclass);
 
 #ifdef __cplusplus

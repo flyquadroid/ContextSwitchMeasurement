@@ -9,10 +9,8 @@ public class Switch {
 
     public native static void jniFromCToJava();
 
-    public native static void jniStartAccelerometer();
-    public native static void jniStartGyroscope();
-    public native static void jniStartMagnetometer();
-    public native static void jniStartBarometer();
+    public native static void jniStartLatency();
+    public native static void jniStartRate();
 
 
     static {

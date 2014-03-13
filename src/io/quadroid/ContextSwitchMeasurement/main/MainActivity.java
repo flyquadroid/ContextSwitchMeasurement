@@ -1,6 +1,7 @@
 package io.quadroid.ContextSwitchMeasurement.main;
 
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -36,11 +37,13 @@ import java.util.List;
 
 public class MainActivity extends Activity implements SensorEventListener {
 
-    private static final String TAG = MainActivity.class.getSimpleName()+"_OUT";
+    private static final String TAG = MainActivity.class.getSimpleName() + "_OUT";
     private static final int SENSOR_LIMIT = 100;
-
+    private long[] barometerMeasurements = new long[SENSOR_LIMIT];
+    private long[] magnetometerMeasurements = new long[SENSOR_LIMIT];
+    private long[] gyroscopeMeasurements = new long[SENSOR_LIMIT];
+    private long[] accelerometerMeasurements = new long[SENSOR_LIMIT];
     private final static int JNI_LIMIT = 100000;
-
     // Device
     private static TextView mTextViewDevice;
     private static TextView mTextViewDeviceBoard;           // The name of the underlying board, like "goldfish".
@@ -51,51 +54,138 @@ public class MainActivity extends Activity implements SensorEventListener {
     private static TextView mTextViewDeviceHardware;        // The name of the hardware (from the kernel command line or /proc).
     private static TextView mTextViewDeviceProduct;         // The name of the overall product.
     private static TextView mTextViewDeviceManufacturer;    // The manufacturer of the product/hardware.
-    private static TextView	mTextViewDeviceAndroid;			// The Android version
-    private static TextView	mTextViewDeviceKernel;			// The linux kernel version
-    private static TextView mTextViewDeviceCpuUsage;		// How much of the Cpu is used currently
-    private static TextView mTextViewDeviceMemoryUsage;		// How much of the Memory is used currently
-    private static TextView mTextViewDeviceCpuFrequency;	// The cpu frequency / clockrate
-    
-    
+    private static TextView mTextViewDeviceAndroid;            // The Android version
+    private static TextView mTextViewDeviceKernel;            // The linux kernel version
+    private static TextView mTextViewDeviceCpuUsage;        // How much of the Cpu is used currently
+    private static TextView mTextViewDeviceMemoryUsage;        // How much of the Memory is used currently
+    private static TextView mTextViewDeviceCpuFrequency;    // The cpu frequency / clockrate
     private static ScrollView mScrollView;
-
     // Tests
     private static boolean flagFromJavaToC;
     private static TextView mTextViewResultFromJavaToC;
     private static TextView mTextViewResultFromCToJava;
     private static TextView mTextViewSublineResultFromJavaToC;
     private static TextView mTextViewSublineResultFromCToJava;
-
     private static RadioGroup mRadioGroupTestMode;
-    private RadioButton mRadioButtonTestMode;
     private static Button mButtonRunTest;
     private static Button mButtonSendReport;
-
     // Results
     private static Result resultFromJavaToC;
     private static Result resultFromCToJava;
-
     // Online?
     private static boolean userIsOnline;
-
-    // Sensors
-    private SensorManager mSensorManager;
-    private Sensor mAccelerometer;
-    private Sensor mGyroscope;
-    private Sensor mMagnetometer;
-    private Sensor mBarometer;
-    private int sensorIterator;
-
-    private long[] accelerometerMeasurements = new long[SENSOR_LIMIT];
-    private long[] gyroscopeMeasurements = new long[SENSOR_LIMIT];
-    private long[] magnetometerMeasurements = new long[SENSOR_LIMIT];
-    private long[] barometerMeasurements = new long[SENSOR_LIMIT];
-
     long sdkAcce;
     long sdkGyro;
     long sdkMag;
     long sdkBaro;
+    int sdkAcceCount = 0;
+    int sdkGyroCount = 0;
+    int sdkMagCount = 0;
+    int sdkBaroCount = 0;
+    static boolean isLatencyMeasurement = true;
+    static long measurementStartTime;
+    long periodInNano = 5000000000L;
+    private RadioButton mRadioButtonTestMode;
+    // Sensors
+    private static SensorManager mSensorManager;
+    private static Sensor mAccelerometer;
+    private static Sensor mGyroscope;
+    private static Sensor mMagnetometer;
+    private static Sensor mBarometer;
+    private int sensorIterator;
+
+    public static Context baseContext;
+
+    private static void isNetworkAvailable(final Handler handler, final int timeout) {
+        // ask fo message '0' (not connected) or '1' (connected) on 'handler'
+        // the answer must be send before before within the 'timeout' (in milliseconds)
+
+        new Thread() {
+            private boolean responded = false;
+
+            @Override
+            public void run() {
+                // set 'responded' to TRUE if is able to connect with google mobile (responds fast)
+                new Thread() {
+                    @Override
+                    public void run() {
+                        HttpGet requestForTest = new HttpGet("http://m.google.com");
+                        try {
+                            new DefaultHttpClient().execute(requestForTest); // can last...
+                            responded = true;
+                        } catch (Exception e) {
+                        }
+                    }
+                }.start();
+
+                try {
+                    int waited = 0;
+                    while (!responded && (waited < timeout)) {
+                        sleep(100);
+                        if (!responded) {
+                            waited += 100;
+                        }
+                    }
+                } catch (InterruptedException e) {
+                } // do nothing
+                finally {
+                    if (!responded) {
+                        handler.sendEmptyMessage(0);
+                    } else {
+                        handler.sendEmptyMessage(1);
+                    }
+                }
+            }
+        }.start();
+    }
+
+    private static void enableActions() {
+        mRadioGroupTestMode.setEnabled(true);
+        mButtonRunTest.setEnabled(true);
+
+        if (resultFromJavaToC.time > 0 && resultFromCToJava.time > 0 && resultFromJavaToC.cycles == resultFromCToJava.cycles) {
+            mButtonSendReport.setEnabled(true);
+            mButtonSendReport.setText("Send Report");
+        } else {
+            mButtonSendReport.setEnabled(false);
+        }
+    }
+
+    private static void disableActions() {
+        mRadioGroupTestMode.setEnabled(false);
+        mButtonRunTest.setEnabled(false);
+        mButtonSendReport.setEnabled(false);
+    }
+
+    protected static void updateView() {
+        long time = (Test.time / MainActivity.JNI_LIMIT);
+
+        int colorBlue = Color.parseColor("#33b5e5");
+
+        if (MainActivity.flagFromJavaToC) {
+            resultFromJavaToC.time = time;
+            mTextViewResultFromJavaToC.setTextColor(colorBlue);
+            mTextViewSublineResultFromJavaToC.setTextColor(colorBlue);
+            mTextViewResultFromJavaToC.setText(String.valueOf(time) + " ns");
+        } else {
+            resultFromCToJava.time = time;
+            mTextViewResultFromCToJava.setTextColor(colorBlue);
+            mTextViewSublineResultFromCToJava.setTextColor(colorBlue);
+            mTextViewResultFromCToJava.setText(String.valueOf(time) + " ns");
+        }
+
+        scrollDown();
+        enableActions();
+    }
+
+    private static void scrollDown() {
+        mScrollView.post(new Runnable() {
+            @Override
+            public void run() {
+                mScrollView.fullScroll(View.FOCUS_DOWN);
+            }
+        });
+    }
 
     /**
      * Called when the activity is first created.
@@ -105,9 +195,10 @@ public class MainActivity extends Activity implements SensorEventListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
+        baseContext = this;
 
         //Sensor init
-        mSensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mGyroscope = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         mMagnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
@@ -117,17 +208,17 @@ public class MainActivity extends Activity implements SensorEventListener {
         this.initResults();
 
         mScrollView = (ScrollView) findViewById(R.id.scrollView);
-        mTextViewResultFromJavaToC = (TextView)findViewById(R.id.textViewResultFromJavaToC);
-        mTextViewResultFromCToJava = (TextView)findViewById(R.id.textViewResultFromCToJava);
-        mTextViewSublineResultFromJavaToC = (TextView)findViewById(R.id.textViewSublineResultJavaToC);
-        mTextViewSublineResultFromCToJava = (TextView)findViewById(R.id.textViewSublineResultCToJava);
+        mTextViewResultFromJavaToC = (TextView) findViewById(R.id.textViewResultFromJavaToC);
+        mTextViewResultFromCToJava = (TextView) findViewById(R.id.textViewResultFromCToJava);
+        mTextViewSublineResultFromJavaToC = (TextView) findViewById(R.id.textViewSublineResultJavaToC);
+        mTextViewSublineResultFromCToJava = (TextView) findViewById(R.id.textViewSublineResultCToJava);
 
-        mRadioGroupTestMode = (RadioGroup)findViewById(R.id.radioGroupMode);
+        mRadioGroupTestMode = (RadioGroup) findViewById(R.id.radioGroupMode);
 
 
         // Button "Run Test"
 
-        mButtonRunTest = (Button)findViewById(R.id.buttonRunTest);
+        mButtonRunTest = (Button) findViewById(R.id.buttonRunTest);
         mButtonRunTest.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -141,7 +232,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 mTextViewSublineResultFromJavaToC.setTextColor(Color.WHITE);
                 mTextViewSublineResultFromCToJava.setTextColor(Color.WHITE);
 
-                switch(mRadioButtonTestMode.getId()){
+                switch (mRadioButtonTestMode.getId()) {
                     case R.id.radioButtonFromJavaToC:
                         resultFromJavaToC.cycles = MainActivity.JNI_LIMIT;
                         MainActivity.flagFromJavaToC = true;
@@ -159,12 +250,12 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         // Button "Send Report"
 
-        mButtonSendReport = (Button)findViewById(R.id.buttonSendReport);
+        mButtonSendReport = (Button) findViewById(R.id.buttonSendReport);
         mButtonSendReport.setEnabled(false);
-        mButtonSendReport.setOnClickListener( new View.OnClickListener() {
+        mButtonSendReport.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(userIsOnline){
+                if (userIsOnline) {
                     mButtonSendReport.setEnabled(false);
 
                     Thread thread = new Thread(new Runnable() {
@@ -193,7 +284,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                                 pairs.add(new BasicNameValuePair("kernel", mTextViewDeviceKernel.getText().toString()));
                                 pairs.add(new BasicNameValuePair("jni_from_java_to_c", String.valueOf(resultFromJavaToC.time)));
                                 pairs.add(new BasicNameValuePair("jni_from_c_to_java", String.valueOf(resultFromCToJava.time)));
-                                long jni_delta = (resultFromJavaToC.time>=resultFromCToJava.time)?(resultFromJavaToC.time-resultFromCToJava.time):(resultFromCToJava.time-resultFromJavaToC.time);
+                                long jni_delta = (resultFromJavaToC.time >= resultFromCToJava.time) ? (resultFromJavaToC.time - resultFromCToJava.time) : (resultFromCToJava.time - resultFromJavaToC.time);
                                 pairs.add(new BasicNameValuePair("jni_delta", String.valueOf(jni_delta)));
 
                                 pairs.add(new BasicNameValuePair("acce_latency_sdk", String.valueOf(sdkAcce)));
@@ -215,7 +306,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                                 httppost.setEntity(new UrlEncodedFormEntity(pairs));
 
                                 HttpResponse response = httpclient.execute(httppost);
-                                if(Integer.valueOf(response.getStatusLine().getStatusCode())==200){
+                                if (Integer.valueOf(response.getStatusLine().getStatusCode()) == 200) {
                                     // mButtonSendReport.setText("Thanks");
                                     resultFromJavaToC.reset();
                                     resultFromCToJava.reset();
@@ -248,11 +339,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     protected void onResume() {
         super.onResume();
 
-        //startSDKAccelerometer();
-        //Switch.jniStartAccelerometer();
-        //Switch.jniStartGyroscope();
-        Switch.jniStartMagnetometer();
-        //Switch.jniStartBarometer();
+        startSDKAccelerometer();
     }
 
     private void detectOnlineState() {
@@ -273,47 +360,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 }
             }
         };
-        isNetworkAvailable(h,2000);
-    }
-
-    private static void isNetworkAvailable(final Handler handler, final int timeout) {
-        // ask fo message '0' (not connected) or '1' (connected) on 'handler'
-        // the answer must be send before before within the 'timeout' (in milliseconds)
-
-        new Thread() {
-            private boolean responded = false;
-            @Override
-            public void run() {
-                // set 'responded' to TRUE if is able to connect with google mobile (responds fast)
-                new Thread() {
-                    @Override
-                    public void run() {
-                        HttpGet requestForTest = new HttpGet("http://m.google.com");
-                        try {
-                            new DefaultHttpClient().execute(requestForTest); // can last...
-                            responded = true;
-                        }
-                        catch (Exception e) {
-                        }
-                    }
-                }.start();
-
-                try {
-                    int waited = 0;
-                    while(!responded && (waited < timeout)) {
-                        sleep(100);
-                        if(!responded ) {
-                            waited += 100;
-                        }
-                    }
-                }
-                catch(InterruptedException e) {} // do nothing
-                finally {
-                    if (!responded) { handler.sendEmptyMessage(0); }
-                    else { handler.sendEmptyMessage(1); }
-                }
-            }
-        }.start();
+        isNetworkAvailable(h, 2000);
     }
 
     private void initResults() {
@@ -321,202 +368,127 @@ public class MainActivity extends Activity implements SensorEventListener {
         this.resultFromCToJava = new Result();
     }
 
-    private void detectDevice(){
+    private void detectDevice() {
         // Board
-        mTextViewDeviceBoard = (TextView)findViewById(R.id.textViewDeviceBoard);
+        mTextViewDeviceBoard = (TextView) findViewById(R.id.textViewDeviceBoard);
         mTextViewDeviceBoard.setText(android.os.Build.BOARD);
 
         // Brand
-        mTextViewDeviceBrand = (TextView)findViewById(R.id.textViewDeviceBrand);
+        mTextViewDeviceBrand = (TextView) findViewById(R.id.textViewDeviceBrand);
         mTextViewDeviceBrand.setText(android.os.Build.BRAND);
 
         // CPU ABIs
-        mTextViewDeviceCpuAbi = (TextView)findViewById(R.id.textViewDeviceCpuAbi);
+        mTextViewDeviceCpuAbi = (TextView) findViewById(R.id.textViewDeviceCpuAbi);
         mTextViewDeviceCpuAbi.setText(Build.CPU_ABI);
-        mTextViewDeviceCpuAbi2 = (TextView)findViewById(R.id.textViewDeviceCpuAbi2);
+        mTextViewDeviceCpuAbi2 = (TextView) findViewById(R.id.textViewDeviceCpuAbi2);
         mTextViewDeviceCpuAbi2.setText(Build.CPU_ABI2);
-        
+
         //CPU Frequency
         mTextViewDeviceCpuFrequency = (TextView) findViewById(R.id.textViewDeviceCpuFrequency);
         mTextViewDeviceCpuFrequency.setText(getCpuFrequency());
-        
+
         //CPU Usage:
         mTextViewDeviceCpuUsage = (TextView) findViewById(R.id.textViewDeviceCpuUsage);
         mTextViewDeviceCpuUsage.setText(getCpuUsage());
-        
+
         //Memory Usage:
         mTextViewDeviceMemoryUsage = (TextView) findViewById(R.id.textViewDeviceMemoryUsage);
         mTextViewDeviceMemoryUsage.setText(getMemoryUsage());
 
         // Device
-        mTextViewDevice = (TextView)findViewById(R.id.textViewDevice);
+        mTextViewDevice = (TextView) findViewById(R.id.textViewDevice);
         mTextViewDevice.setText(Build.DEVICE);
 
         // Model
-        mTextViewDeviceModel = (TextView)findViewById(R.id.textViewDeviceModel);
+        mTextViewDeviceModel = (TextView) findViewById(R.id.textViewDeviceModel);
         mTextViewDeviceModel.setText(Build.MODEL);
 
         // Product
-        mTextViewDeviceProduct = (TextView)findViewById(R.id.textViewDeviceProduct);
+        mTextViewDeviceProduct = (TextView) findViewById(R.id.textViewDeviceProduct);
         mTextViewDeviceProduct.setText(Build.PRODUCT);
 
         // Hardware
-        mTextViewDeviceHardware = (TextView)findViewById(R.id.textViewDeviceHardware);
+        mTextViewDeviceHardware = (TextView) findViewById(R.id.textViewDeviceHardware);
         mTextViewDeviceHardware.setText(Build.HARDWARE);
 
         // Manufacturer
-        mTextViewDeviceManufacturer = (TextView)findViewById(R.id.textViewDeviceManufacturer);
+        mTextViewDeviceManufacturer = (TextView) findViewById(R.id.textViewDeviceManufacturer);
         mTextViewDeviceManufacturer.setText(Build.MANUFACTURER);
-        
+
         //Android Version
         mTextViewDeviceAndroid = (TextView) findViewById(R.id.textViewDeviceAndroid);
         mTextViewDeviceAndroid.setText(Build.VERSION.RELEASE);
-        
+
         //Kernel Version
-        mTextViewDeviceKernel = (TextView)findViewById(R.id.textViewDeviceKernel);
+        mTextViewDeviceKernel = (TextView) findViewById(R.id.textViewDeviceKernel);
         mTextViewDeviceKernel.setText(getKernelVersion());
 
     }
 
-	private String getCpuFrequency() {
-		
-		//return String returns 0 if an exception is thrown
-		String cpuFrequency = "0";
-		
-		try {
-			//read file /sys/devices/system/cpu/cpu0/cpufreq/stats/time_in_state
-			RandomAccessFile reader = new RandomAccessFile( "/sys/devices/system/cpu/cpu0/cpufreq/stats/time_in_state", "r" );
-			
-			//iterate through file until highest frequency is reched (end of the file)
-			boolean done = false;
-			
-			while(!done){
-				String line = reader.readLine();
-				if(line != null){
-					cpuFrequency = line;
-				}
-				else{
-					done = true;
-				}
-			}
-			
-			//format return String
-			cpuFrequency = cpuFrequency.substring(0, cpuFrequency.indexOf(" ")-3) + " MHz";
+    private String getCpuFrequency() {
 
-			
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+        //return String returns 0 if an exception is thrown
+        String cpuFrequency = "0";
 
-		
-		return cpuFrequency;
-	}
+        try {
+            //read file /sys/devices/system/cpu/cpu0/cpufreq/stats/time_in_state
+            RandomAccessFile reader = new RandomAccessFile("/sys/devices/system/cpu/cpu0/cpufreq/stats/time_in_state", "r");
 
-	private String getMemoryUsage() {
+            //iterate through file until highest frequency is reched (end of the file)
+            boolean done = false;
 
-		//return String returns 0 if an exception is thrown
-		String memUsage = "0";
-		
-		try {
-			
-			//read file /proc/meminfo
-			RandomAccessFile reader = new RandomAccessFile("/proc/meminfo", "r");
-
-			//get total memory from 1st line of /proc/meminfo
-			String memTotal = reader.readLine();
-			memTotal = (memTotal.substring(memTotal.indexOf(":")+1,memTotal.length()-2)).trim();
-			
-			//get free memory from 2nd line of /proc/meminfo
-			String memFree = reader.readLine();
-			memFree = (memFree.substring(memFree.indexOf(":")+1,memFree.length()-2)).trim();
-
-			//calculate used memory and build string to display
-			String memUsed = String.valueOf((Integer.parseInt(memTotal) - Integer.parseInt(memFree)));
-			memUsage = memUsed + " / " + memTotal + " KB";
-			
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		return memUsage;
-	}
-
-	private String getCpuUsage() {
-		
-		//return String returns 0 if an exception is thrown
-		String cpuUsage = "0";
-		
-		try {
-			//read file /proc/stat
-	        RandomAccessFile reader = new RandomAccessFile("/proc/stat", "r");
-	        
-	        //read usage values from all cpus and write to array
-	        String load = reader.readLine();      
-	        String[] toks = load.split(" ");
-
-	        //get cpu idle value
-	        long idle = Long.parseLong(toks[5]);
-	        //get used cpu value: (niced) processes in user and kernel mode
-	        long cpu = Long.parseLong(toks[2]) + Long.parseLong(toks[3]) + Long.parseLong(toks[4])
-	              + Long.parseLong(toks[6]) + Long.parseLong(toks[7]) + Long.parseLong(toks[8]);
-	        
-	        //calculate used cpu / idle ratio
-	        float usage = (((float)cpu)/((float)(idle + cpu)));
-	        
-	        //format, calculate percentage and write to return string
-	        DecimalFormat df = new DecimalFormat("##.#");
-	        cpuUsage = String.valueOf(df.format(usage*100)) + "%";
-	        
-	    } catch (IOException ex) {
-	        ex.printStackTrace();
-	    }
-		
-		return cpuUsage;
-	}
-
-	private String getKernelVersion() {
-
-		//return String returns 0 if an exception is thrown
-    	String version = "0";
-    	
-    	try {
-    		//read file /proc/version
-			RandomAccessFile reader = new RandomAccessFile("/proc/version", "r");
-			
-			//get linux kernel version from 1st line of /proc/version
-			version = reader.readLine();
-			
-			//split String to get Kernel version number and build return String
-			String[] subs = version.split(" ");
-			version = subs[2];
-			
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-    	
-    	return version;
-	}
-
-	private void runPosts(int limit){
-        if(!Test.isRunning()){
-            Test.start();
-            for(int i=0; i<limit; i++){
-                Switch.jniFromJavaToC();
+            while (!done) {
+                String line = reader.readLine();
+                if (line != null) {
+                    cpuFrequency = line;
+                } else {
+                    done = true;
+                }
             }
+
+            //format return String
+            cpuFrequency = cpuFrequency.substring(0, cpuFrequency.indexOf(" ") - 3) + " MHz";
+
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+
+
+        return cpuFrequency;
     }
 
-    private void runGets(){
-        if(!Test.isRunning()){
-            Test.start();
-            Switch.jniFromCToJava();
+    private String getMemoryUsage() {
+
+        //return String returns 0 if an exception is thrown
+        String memUsage = "0";
+
+        try {
+
+            //read file /proc/meminfo
+            RandomAccessFile reader = new RandomAccessFile("/proc/meminfo", "r");
+
+            //get total memory from 1st line of /proc/meminfo
+            String memTotal = reader.readLine();
+            memTotal = (memTotal.substring(memTotal.indexOf(":") + 1, memTotal.length() - 2)).trim();
+
+            //get free memory from 2nd line of /proc/meminfo
+            String memFree = reader.readLine();
+            memFree = (memFree.substring(memFree.indexOf(":") + 1, memFree.length() - 2)).trim();
+
+            //calculate used memory and build string to display
+            String memUsed = String.valueOf((Integer.parseInt(memTotal) - Integer.parseInt(memFree)));
+            memUsage = memUsed + " / " + memTotal + " KB";
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+
+        return memUsage;
     }
 
 //    private void runTrips(long limit){
@@ -527,62 +499,82 @@ public class MainActivity extends Activity implements SensorEventListener {
 //        }
 //    }
 
-    private static void enableActions(){
-        mRadioGroupTestMode.setEnabled(true);
-        mButtonRunTest.setEnabled(true);
+    private String getCpuUsage() {
 
-        if(resultFromJavaToC.time>0 && resultFromCToJava.time>0 && resultFromJavaToC.cycles==resultFromCToJava.cycles){
-            mButtonSendReport.setEnabled(true);
-            mButtonSendReport.setText("Send Report");
-        } else {
-            mButtonSendReport.setEnabled(false);
-        }
-    }
+        //return String returns 0 if an exception is thrown
+        String cpuUsage = "0";
 
-    private static void disableActions(){
-        mRadioGroupTestMode.setEnabled(false);
-        mButtonRunTest.setEnabled(false);
-        mButtonSendReport.setEnabled(false);
-    }
+        try {
+            //read file /proc/stat
+            RandomAccessFile reader = new RandomAccessFile("/proc/stat", "r");
 
-    protected static void updateView(){
-        long time = (Test.time/MainActivity.JNI_LIMIT);
+            //read usage values from all cpus and write to array
+            String load = reader.readLine();
+            String[] toks = load.split(" ");
 
-        int colorBlue = Color.parseColor("#33b5e5");
+            //get cpu idle value
+            long idle = Long.parseLong(toks[5]);
+            //get used cpu value: (niced) processes in user and kernel mode
+            long cpu = Long.parseLong(toks[2]) + Long.parseLong(toks[3]) + Long.parseLong(toks[4])
+                    + Long.parseLong(toks[6]) + Long.parseLong(toks[7]) + Long.parseLong(toks[8]);
 
-        if(MainActivity.flagFromJavaToC){
-            resultFromJavaToC.time = time;
-            mTextViewResultFromJavaToC.setTextColor(colorBlue);
-            mTextViewSublineResultFromJavaToC.setTextColor(colorBlue);
-            mTextViewResultFromJavaToC.setText(String.valueOf(time)+" ns");
-        } else {
-            resultFromCToJava.time = time;
-            mTextViewResultFromCToJava.setTextColor(colorBlue);
-            mTextViewSublineResultFromCToJava.setTextColor(colorBlue);
-            mTextViewResultFromCToJava.setText(String.valueOf(time)+" ns");
+            //calculate used cpu / idle ratio
+            float usage = (((float) cpu) / ((float) (idle + cpu)));
+
+            //format, calculate percentage and write to return string
+            DecimalFormat df = new DecimalFormat("##.#");
+            cpuUsage = String.valueOf(df.format(usage * 100)) + "%";
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
         }
 
-        scrollDown();
-        enableActions();
+        return cpuUsage;
     }
 
-    private static void scrollDown(){
-        mScrollView.post(new Runnable() {
-            @Override
-            public void run() {
-                mScrollView.fullScroll(View.FOCUS_DOWN);
+    private String getKernelVersion() {
+
+        //return String returns 0 if an exception is thrown
+        String version = "0";
+
+        try {
+            //read file /proc/version
+            RandomAccessFile reader = new RandomAccessFile("/proc/version", "r");
+
+            //get linux kernel version from 1st line of /proc/version
+            version = reader.readLine();
+
+            //split String to get Kernel version number and build return String
+            String[] subs = version.split(" ");
+            version = subs[2];
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return version;
+    }
+
+    private void runPosts(int limit) {
+        if (!Test.isRunning()) {
+            Test.start();
+            for (int i = 0; i < limit; i++) {
+                Switch.jniFromJavaToC();
             }
-        });
+        }
+    }
+
+    private void runGets() {
+        if (!Test.isRunning()) {
+            Test.start();
+            Switch.jniFromCToJava();
+        }
     }
 
 
-
-
-
-
-
-
-    // Sensor Measurement
+    // Sensor Delay Measurement
 
     private void startSDKAccelerometer() {
         mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
@@ -614,58 +606,6 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     private void stopSDKBarometer() {
         mSensorManager.unregisterListener(this, mBarometer);
-    }
-
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-
-        switch (event.sensor.getType()) {
-            case Sensor.TYPE_ACCELEROMETER:
-                if (sensorIterator < SENSOR_LIMIT) {
-                    accelerometerMeasurements[sensorIterator++] = System.nanoTime()-event.timestamp;
-                }  else if (sensorIterator == SENSOR_LIMIT) {
-                    sensorIterator = 0;
-                    stopSDKAccelerometer();
-                    Log.i(TAG, "Accelerometer: done");
-                    startSDKGyroscope();
-                }
-                break;
-            case Sensor.TYPE_GYROSCOPE:
-                if (sensorIterator < SENSOR_LIMIT) {
-                    gyroscopeMeasurements[sensorIterator++] = System.nanoTime()-event.timestamp;
-                }  else if (sensorIterator == SENSOR_LIMIT) {
-                    sensorIterator = 0;
-                    stopSDKGyroscope();
-                    Log.i(TAG, "Gyroscope: done");
-                    startSDKMagnetometer();
-                }
-                break;
-            case Sensor.TYPE_MAGNETIC_FIELD:
-                if (sensorIterator < SENSOR_LIMIT) {
-                    magnetometerMeasurements[sensorIterator++] = System.nanoTime()-event.timestamp;
-                }  else if (sensorIterator == SENSOR_LIMIT) {
-                    sensorIterator = 0;
-                    stopSDKMagnetometer();
-                    Log.i(TAG, "Magnetometer: done");
-                    startSDKBarometer();
-                }
-                break;
-            case Sensor.TYPE_PRESSURE:
-                if (sensorIterator < SENSOR_LIMIT) {
-                    barometerMeasurements[sensorIterator++] = System.nanoTime()-event.timestamp;
-                }  else if (sensorIterator == SENSOR_LIMIT) {
-                    sensorIterator = 0;
-                    stopSDKBarometer();
-                    Log.i(TAG, "Barometer: done");
-                    calcSensorMedians();
-                }
-                break;
-        }
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
     }
 
     private void calcSensorMedians() {
@@ -706,5 +646,151 @@ public class MainActivity extends Activity implements SensorEventListener {
         Log.i(TAG, "Gyroscope: " + String.valueOf(gyroscope));
         Log.i(TAG, "Magnetometer: " + String.valueOf(magnetometer));
         Log.i(TAG, "Barometer: " + String.valueOf(barometer));
+
+        Switch.jniStartLatency();
+    }
+
+    public static void ndkLatency() {
+        Log.i(TAG, "C to Java Dummy Test");
+
+        isLatencyMeasurement = false;
+        startRateAccelerometer();
+    }
+
+    // Sensor Rate Measurement
+
+    private static void startRateAccelerometer() {
+        measurementStartTime = System.nanoTime();
+        mSensorManager.registerListener((SensorEventListener) baseContext, mAccelerometer, SensorManager.SENSOR_DELAY_FASTEST);
+    }
+
+    private void stopRateAccelerometer() {
+        mSensorManager.unregisterListener(this, mAccelerometer);
+    }
+
+    private void startRateGyroscope() {
+        measurementStartTime = System.nanoTime();
+        mSensorManager.registerListener(this, mGyroscope, SensorManager.SENSOR_DELAY_FASTEST);
+    }
+
+    private void stopRateGyroscope() {
+        mSensorManager.unregisterListener(this, mGyroscope);
+    }
+
+    private void startRateMagnetometer() {
+        measurementStartTime = System.nanoTime();
+        mSensorManager.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_FASTEST);
+    }
+
+    private void stopRateMagnetometer() {
+        mSensorManager.unregisterListener(this, mMagnetometer);
+    }
+
+    private void startRateBarometer() {
+        measurementStartTime = System.nanoTime();
+        mSensorManager.registerListener(this, mBarometer, SensorManager.SENSOR_DELAY_FASTEST);
+    }
+
+    private void stopRateBarometer() {
+        mSensorManager.unregisterListener(this, mBarometer);
+    }
+
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+
+        if (isLatencyMeasurement) {
+            switch (event.sensor.getType()) {
+                case Sensor.TYPE_ACCELEROMETER:
+                    if (sensorIterator < SENSOR_LIMIT) {
+                        accelerometerMeasurements[sensorIterator++] = System.nanoTime() - event.timestamp;
+                    } else if (sensorIterator == SENSOR_LIMIT) {
+                        sensorIterator = 0;
+                        stopSDKAccelerometer();
+                        Log.i(TAG, "Accelerometer: done");
+                        startSDKGyroscope();
+                    }
+                    break;
+                case Sensor.TYPE_GYROSCOPE:
+                    if (sensorIterator < SENSOR_LIMIT) {
+                        gyroscopeMeasurements[sensorIterator++] = System.nanoTime() - event.timestamp;
+                    } else if (sensorIterator == SENSOR_LIMIT) {
+                        sensorIterator = 0;
+                        stopSDKGyroscope();
+                        Log.i(TAG, "Gyroscope: done");
+                        startSDKMagnetometer();
+                    }
+                    break;
+                case Sensor.TYPE_MAGNETIC_FIELD:
+                    if (sensorIterator < SENSOR_LIMIT) {
+                        magnetometerMeasurements[sensorIterator++] = System.nanoTime() - event.timestamp;
+                    } else if (sensorIterator == SENSOR_LIMIT) {
+                        sensorIterator = 0;
+                        stopSDKMagnetometer();
+                        Log.i(TAG, "Magnetometer: done");
+                        startSDKBarometer();
+                    }
+                    break;
+                case Sensor.TYPE_PRESSURE:
+                    if (sensorIterator < SENSOR_LIMIT) {
+                        barometerMeasurements[sensorIterator++] = System.nanoTime() - event.timestamp;
+                    } else if (sensorIterator == SENSOR_LIMIT) {
+                        sensorIterator = 0;
+                        stopSDKBarometer();
+                        Log.i(TAG, "Barometer: done");
+                        calcSensorMedians();
+                    }
+                    break;
+            }
+        } else {
+            switch (event.sensor.getType()) {
+                case Sensor.TYPE_ACCELEROMETER:
+                    if ((measurementStartTime + periodInNano) >= System.nanoTime()) {
+                        sdkAcceCount++;
+                    } else {
+                        stopRateAccelerometer();
+
+                        int rate = (int) (sdkAcceCount / (periodInNano / 1000000000));
+
+                        Log.i(TAG, "Accelerometer-Rate: " + String.valueOf(rate) + " Hz");
+                        startRateGyroscope();
+                    }
+                    break;
+                case Sensor.TYPE_GYROSCOPE:
+                    if ((measurementStartTime + periodInNano) >= System.nanoTime()) {
+                        sdkGyroCount++;
+                    } else {
+                        stopRateGyroscope();
+                        int rate = (int) (sdkGyroCount / (periodInNano / 1000000000));
+                        Log.i(TAG, "Gyroscope-Rate: " + String.valueOf(rate) + " Hz");
+                        startRateMagnetometer();
+                    }
+                    break;
+                case Sensor.TYPE_MAGNETIC_FIELD:
+                    if ((measurementStartTime + periodInNano) >= System.nanoTime()) {
+                        sdkMagCount++;
+                    } else {
+                        stopRateMagnetometer();
+                        int rate = (int) (sdkMagCount / (periodInNano / 1000000000));
+                        Log.i(TAG, "MagneticField-Rate: " + String.valueOf(rate) + " Hz");
+                        startRateBarometer();
+                    }
+                    break;
+                case Sensor.TYPE_PRESSURE:
+                    if ((measurementStartTime + periodInNano) >= System.nanoTime()) {
+                        sdkBaroCount++;
+                    } else {
+                        stopRateBarometer();
+                        int rate = (int) (sdkBaroCount / (periodInNano / 1000000000));
+                        Log.i(TAG, "Pressure-Rate: " + String.valueOf(rate) + " Hz");
+                    }
+                    break;
+            }
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
     }
 }

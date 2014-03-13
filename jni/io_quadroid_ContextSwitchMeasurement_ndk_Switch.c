@@ -21,7 +21,7 @@
 #define ASENSOR_TYPE_PRESSURE 6
 
 long rounds = 0;
-static JavaVM* jvm;
+static JavaVM *jvm;
 
 long long accelerometerLatency[SENSOR_LIMIT] = {};
 long long gyroscopeLatency[SENSOR_LIMIT] = {};
@@ -29,8 +29,10 @@ long long magnetometerLatency[SENSOR_LIMIT] = {};
 long long barometerLatency[SENSOR_LIMIT] = {};
 
 long sensorRounds = 0;
-ASensorEventQueue* sensorEventQueue;
-ALooper* looper;
+ASensorEventQueue *sensorEventQueue;
+ALooper *looper;
+
+static int get_sensor_events(int fd, int events, void* data);
 
 long long getTimeNsec() {
     struct timespec now;
@@ -125,103 +127,7 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniF
 
 }
 
-
-static int get_sensor_events(int fd, int events, void* data) {
-  ASensorEvent event;
-  //ASensorEventQueue* sensorEventQueue;
-  while (ASensorEventQueue_getEvents(sensorEventQueue, &event, 1) > 0) {
-
-    switch(event.type){
-        case ASENSOR_TYPE_ACCELEROMETER:
-            if(sensorRounds<SENSOR_LIMIT) {
-                long long diff = getTimeNsec() - event.timestamp;
-
-                accelerometerLatency[sensorRounds] = diff;
-                sensorRounds++;
-            } else {
-                ASensorManager_destroyEventQueue(ASensorManager_getInstance(), sensorEventQueue);
-
-                long long latencies = 0;
-
-                int i;
-                for(i = 0; i < SENSOR_LIMIT; i++) {
-                    latencies += accelerometerLatency[i];
-                }
-
-                long long average = latencies / SENSOR_LIMIT;
-                LOGI("AccelerometerLatency: %lld", average);
-            }
-        case ASENSOR_TYPE_GYROSCOPE:
-            if(sensorRounds<SENSOR_LIMIT) {
-                long long diff = getTimeNsec() - event.timestamp;
-
-                gyroscopeLatency[sensorRounds] = diff;
-                sensorRounds++;
-            } else {
-                ASensorManager_destroyEventQueue(ASensorManager_getInstance(), sensorEventQueue);
-
-                long long latencies = 0;
-
-                int i;
-                for(i = 0; i < SENSOR_LIMIT; i++) {
-                    latencies += gyroscopeLatency[i];
-                }
-
-                long long average = latencies / SENSOR_LIMIT;
-                LOGI("GyroscopeLatency: %lld", average);
-            }
-        case ASENSOR_TYPE_MAGNETIC_FIELD:
-            if(sensorRounds<SENSOR_LIMIT) {
-                long long diff = getTimeNsec() - event.timestamp;
-
-                magnetometerLatency[sensorRounds] = diff;
-                sensorRounds++;
-            } else {
-                ASensorManager_destroyEventQueue(ASensorManager_getInstance(), sensorEventQueue);
-
-                long long latencies = 0;
-
-                int i;
-                for(i = 0; i < SENSOR_LIMIT; i++) {
-                    latencies += magnetometerLatency[i];
-                }
-
-                long long average = latencies / SENSOR_LIMIT;
-                LOGI("MagnetometerLatency: %lld", average);
-            }
-        case ASENSOR_TYPE_PRESSURE:
-            if(sensorRounds<SENSOR_LIMIT) {
-                long long diff = getTimeNsec() - event.timestamp;
-
-                barometerLatency[sensorRounds] = diff;
-                sensorRounds++;
-            } else {
-                ASensorManager_destroyEventQueue(ASensorManager_getInstance(), sensorEventQueue);
-
-                long long latencies = 0;
-
-                int i;
-                for(i = 0; i < SENSOR_LIMIT; i++) {
-                    latencies += barometerLatency[i];
-                }
-
-                long long average = latencies / SENSOR_LIMIT;
-                LOGI("BarometerLatency: %lld", average);
-            }
-    }
-
-  }
-  //should return 1 to continue receiving callbacks, or 0 to unregister
-  return 1;
-}
-
-
-/*
- * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
- * Method:    jniStartAccelerometer
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartAccelerometer(JNIEnv *env, jclass clazz) {
+void startAccelerometerLatency() {
 
      LOGI("startAccelerometer");
 
@@ -230,10 +136,6 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniS
     ASensorManager* sensorManager;
     const ASensor* accSensor;
     void* sensor_data = malloc(1000);
-
-    LOGI("sensorValue() - ALooper_forThread()");
-
-    //ALooper* looper = ALooper_forThread();
 
     if(looper == NULL)
     {
@@ -252,58 +154,37 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniS
     int a = ASensor_getMinDelay(accSensor);
     LOGI("min-delay: %d",a);
     ASensorEventQueue_setEventRate(sensorEventQueue, accSensor, 1000000);
-
-    LOGI("sensorValue() - START");
-
 }
 
-/*
- * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
- * Method:    jniStartGyroscope
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartGyroscope(JNIEnv *env, jclass clazz) {
+void startGyroscopeLatency() {
+    LOGI("startGyroscope");
 
-     LOGI("startGyroscope");
+        ASensorEvent event;
+        int events, ident;
+        ASensorManager* sensorManager;
+        const ASensor* gyroSensor;
+        void* sensor_data = malloc(1000);
 
-    ASensorEvent event;
-    int events, ident;
-    ASensorManager* sensorManager;
-    const ASensor* gyroSensor;
-    void* sensor_data = malloc(1000);
+        if(looper == NULL)
+        {
+            looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
+        }
 
-    LOGI("sensorValue() - ALooper_forThread()");
+        sensorManager = ASensorManager_getInstance();
 
-    //ALooper* looper = ALooper_forThread();
+        gyroSensor = ASensorManager_getDefaultSensor(sensorManager, ASENSOR_TYPE_GYROSCOPE);
 
-    if(looper == NULL)
-    {
-        looper = ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS);
-    }
+        sensorEventQueue = ASensorManager_createEventQueue(sensorManager, looper, 1, get_sensor_events, sensor_data);
 
-    sensorManager = ASensorManager_getInstance();
+        ASensorEventQueue_enableSensor(sensorEventQueue, gyroSensor);
 
-    gyroSensor = ASensorManager_getDefaultSensor(sensorManager, ASENSOR_TYPE_GYROSCOPE);
-
-    sensorEventQueue = ASensorManager_createEventQueue(sensorManager, looper, 1, get_sensor_events, sensor_data);
-
-    ASensorEventQueue_enableSensor(sensorEventQueue, gyroSensor);
-
-    //Sampling rate: 100Hz
-    int a = ASensor_getMinDelay(gyroSensor);
-    LOGI("min-delay: %d",a);
-    ASensorEventQueue_setEventRate(sensorEventQueue, gyroSensor, 1000000);
-
-    LOGI("sensorValue() - START");
-
+        //Sampling rate: 100Hz
+        int a = ASensor_getMinDelay(gyroSensor);
+        LOGI("min-delay: %d",a);
+        ASensorEventQueue_setEventRate(sensorEventQueue, gyroSensor, 1000000);
 }
 
-/*
- * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
- * Method:    jniStartMagnetometer
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartMagnetometer(JNIEnv *env, jclass clazz) {
+void startMagnetometerLatency() {
 
      LOGI("startMagnetometer");
 
@@ -312,10 +193,6 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniS
     ASensorManager* sensorManager;
     const ASensor* magSensor;
     void* sensor_data = malloc(1000);
-
-    LOGI("sensorValue() - ALooper_forThread()");
-
-    //ALooper* looper = ALooper_forThread();
 
     if(looper == NULL)
     {
@@ -335,16 +212,10 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniS
     LOGI("min-delay: %d",a);
     ASensorEventQueue_setEventRate(sensorEventQueue, magSensor, 1000000);
 
-    LOGI("sensorValue() - START");
 
 }
 
-/*
- * Class:     io_quadroid_ContextSwitchMeasurement_ndk_Switch
- * Method:    jniStartBarometer
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartBarometer(JNIEnv *env, jclass clazz) {
+void startBarometerLatency() {
 
      LOGI("startBarometer");
 
@@ -353,10 +224,6 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniS
     ASensorManager* sensorManager;
     const ASensor* baroSensor;
     void* sensor_data = malloc(1000);
-
-    LOGI("sensorValue() - ALooper_forThread()");
-
-    //ALooper* looper = ALooper_forThread();
 
     if(looper == NULL)
     {
@@ -367,16 +234,162 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniS
 
     baroSensor = ASensorManager_getDefaultSensor(sensorManager, ASENSOR_TYPE_PRESSURE);
 
+    if(baroSensor) {
     sensorEventQueue = ASensorManager_createEventQueue(sensorManager, looper, 1, get_sensor_events, sensor_data);
 
-    ASensorEventQueue_enableSensor(sensorEventQueue, baroSensor);
+        ASensorEventQueue_enableSensor(sensorEventQueue, baroSensor);
 
-    //Sampling rate: 100Hz
-    int a = ASensor_getMinDelay(baroSensor);
-    LOGI("min-delay: %d",a);
-    ASensorEventQueue_setEventRate(sensorEventQueue, baroSensor, 1000000);
+        //Sampling rate: 100Hz
+        int a = ASensor_getMinDelay(baroSensor);
+        LOGI("min-delay: %d",a);
+        ASensorEventQueue_setEventRate(sensorEventQueue, baroSensor, 1000000);
+    } else {
+         LOGI("No Barro");
+    }
 
-    LOGI("sensorValue() - START");
+
 
 }
 
+JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartLatency(JNIEnv *env, jclass clazz) {
+    startAccelerometerLatency();
+}
+
+JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartRate(JNIEnv *env, jclass clazz) {
+}
+
+
+static int get_sensor_events(int fd, int events, void* data) {
+  ASensorEvent event;
+  //ASensorEventQueue* sensorEventQueue;
+  while (ASensorEventQueue_getEvents(sensorEventQueue, &event, 1) > 0) {
+
+    switch(event.type){
+        case ASENSOR_TYPE_ACCELEROMETER:
+            if(sensorRounds<SENSOR_LIMIT) {
+                long long diff = getTimeNsec() - event.timestamp;
+
+                accelerometerLatency[sensorRounds] = diff;
+                sensorRounds++;
+            } else {
+                ASensorManager_destroyEventQueue(ASensorManager_getInstance(), sensorEventQueue);
+
+                sensorRounds = 0;
+
+                long long latencies = 0;
+
+                int i;
+                for(i = 0; i < SENSOR_LIMIT; i++) {
+                    latencies += accelerometerLatency[i];
+                }
+
+                long long average = latencies / SENSOR_LIMIT;
+                LOGI("AccelerometerLatency: %lld", average);
+
+                startGyroscopeLatency();
+            }
+            break;
+        case ASENSOR_TYPE_GYROSCOPE:
+            if(sensorRounds<SENSOR_LIMIT) {
+                long long diff = getTimeNsec() - event.timestamp;
+
+                gyroscopeLatency[sensorRounds] = diff;
+                sensorRounds++;
+            } else {
+                ASensorManager_destroyEventQueue(ASensorManager_getInstance(), sensorEventQueue);
+
+                sensorRounds = 0;
+
+                long long latencies = 0;
+
+                int i;
+                for(i = 0; i < SENSOR_LIMIT; i++) {
+                    latencies += gyroscopeLatency[i];
+                }
+
+                long long average = latencies / SENSOR_LIMIT;
+                LOGI("GyroscopeLatency: %lld", average);
+
+                startMagnetometerLatency();
+            }
+
+                    break;
+        case ASENSOR_TYPE_MAGNETIC_FIELD:
+            if(sensorRounds<SENSOR_LIMIT) {
+                long long diff = getTimeNsec() - event.timestamp;
+
+                magnetometerLatency[sensorRounds] = diff;
+                sensorRounds++;
+            } else {
+                ASensorManager_destroyEventQueue(ASensorManager_getInstance(), sensorEventQueue);
+
+                sensorRounds = 0;
+
+                long long latencies = 0;
+
+                int i;
+                for(i = 0; i < SENSOR_LIMIT; i++) {
+                    latencies += magnetometerLatency[i];
+                }
+
+                long long average = latencies / SENSOR_LIMIT;
+                LOGI("MagnetometerLatency: %lld", average);
+
+                startBarometerLatency();
+            }
+
+                    break;
+        case ASENSOR_TYPE_PRESSURE:
+            if(sensorRounds<SENSOR_LIMIT) {
+                long long diff = getTimeNsec() - event.timestamp;
+
+                barometerLatency[sensorRounds] = diff;
+                sensorRounds++;
+            } else {
+                ASensorManager_destroyEventQueue(ASensorManager_getInstance(), sensorEventQueue);
+
+                sensorRounds = 0;
+                long long latencies = 0;
+
+                int i;
+                for(i = 0; i < SENSOR_LIMIT; i++) {
+                    latencies += barometerLatency[i];
+                }
+
+                long long average = latencies / SENSOR_LIMIT;
+                LOGI("BarometerLatency: %lld", average);
+
+                JNIEnv* env;
+                if ((*jvm)->GetEnv(jvm, (void **)&env, JNI_VERSION_1_6)) {
+                   return -1;
+                }
+
+                int status = (*env)->GetJavaVM(env, &jvm);
+                    if(status != 0) {
+                        LOGI("jvm: Error");
+                    } else {
+                        jclass mClassTest = (*env)->FindClass(env, "io/quadroid/ContextSwitchMeasurement/main/MainActivity");
+                        if(mClassTest == NULL){
+                            LOGI("get: Could not get 'Test' java class");
+                        } else {
+                            LOGI("get: Could get 'Test' java class");
+                        }
+
+                        jmethodID mMethodStop = (*env)->GetStaticMethodID(env, mClassTest, "ndkLatency", "()V");
+                        if(mMethodStop == NULL){
+                            LOGI("get: Could not get 'stop' method identifier");
+                        } else {
+                            LOGI("get: Could get 'stop' method identifier");
+                        }
+
+                        (*env)->CallStaticVoidMethod(env, mClassTest, mMethodStop);
+                    }
+            }
+
+            break;
+    }
+
+  }
+  //should return 1 to continue receiving callbacks, or 0 to unregister
+  return 1;
+}
