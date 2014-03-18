@@ -74,10 +74,24 @@ public class MainActivity extends Activity implements SensorEventListener {
     private static Result resultFromCToJava;
     // Online?
     private static boolean userIsOnline;
-    long sdkAcce;
-    long sdkGyro;
-    long sdkMag;
-    long sdkBaro;
+
+    long sdkLatencyAcce;
+    long sdkLatencyGyro;
+    long sdkLatencyMag;
+    long sdkLatencyBaro;
+    static long ndkLatencyAcce;
+    static long ndkLatencyGyro;
+    static long ndkLatencyMag;
+    static long ndkLatencyBaro;
+    long sdkRateAcce;
+    long sdkRateGyro;
+    long sdkRateMag;
+    long sdkRateBaro;
+    static long ndkRateAcce;
+    static long ndkRateGyro;
+    static long ndkRateMag;
+    static long ndkRateBaro;
+
     int sdkAcceCount = 0;
     int sdkGyroCount = 0;
     int sdkMagCount = 0;
@@ -287,22 +301,22 @@ public class MainActivity extends Activity implements SensorEventListener {
                                 long jni_delta = (resultFromJavaToC.time >= resultFromCToJava.time) ? (resultFromJavaToC.time - resultFromCToJava.time) : (resultFromCToJava.time - resultFromJavaToC.time);
                                 pairs.add(new BasicNameValuePair("jni_delta", String.valueOf(jni_delta)));
 
-                                pairs.add(new BasicNameValuePair("acce_latency_sdk", String.valueOf(sdkAcce)));
-                                pairs.add(new BasicNameValuePair("acce_latency_ndk", String.valueOf(0)));
-                                pairs.add(new BasicNameValuePair("acce_freq_sdk", String.valueOf(0)));
-                                pairs.add(new BasicNameValuePair("acce_freq_ndk", String.valueOf(0)));
-                                pairs.add(new BasicNameValuePair("gyro_latency_sdk", String.valueOf(sdkGyro)));
-                                pairs.add(new BasicNameValuePair("gyro_latency_ndk", String.valueOf(0)));
-                                pairs.add(new BasicNameValuePair("gyro_freq_sdk", String.valueOf(0)));
-                                pairs.add(new BasicNameValuePair("gyro_freq_ndk", String.valueOf(0)));
-                                pairs.add(new BasicNameValuePair("magnetometer_latency_sdk", String.valueOf(sdkMag)));
-                                pairs.add(new BasicNameValuePair("magnetometer_latency_ndk", String.valueOf(0)));
-                                pairs.add(new BasicNameValuePair("magnetometer_freq_sdk", String.valueOf(0)));
-                                pairs.add(new BasicNameValuePair("magnetometer_freq_ndk", String.valueOf(0)));
-                                pairs.add(new BasicNameValuePair("barometer_latency_sdk", String.valueOf(sdkBaro)));
-                                pairs.add(new BasicNameValuePair("barometer_latency_ndk", String.valueOf(0)));
-                                pairs.add(new BasicNameValuePair("barometer_freq_sdk", String.valueOf(0)));
-                                pairs.add(new BasicNameValuePair("barometer_freq_ndk", String.valueOf(0)));
+                                pairs.add(new BasicNameValuePair("acce_latency_sdk", String.valueOf(sdkLatencyAcce)));
+                                pairs.add(new BasicNameValuePair("acce_latency_ndk", String.valueOf(ndkLatencyAcce)));
+                                pairs.add(new BasicNameValuePair("acce_freq_sdk", String.valueOf(sdkRateAcce)));
+                                pairs.add(new BasicNameValuePair("acce_freq_ndk", String.valueOf(ndkRateAcce)));
+                                pairs.add(new BasicNameValuePair("gyro_latency_sdk", String.valueOf(sdkLatencyGyro)));
+                                pairs.add(new BasicNameValuePair("gyro_latency_ndk", String.valueOf(ndkLatencyGyro)));
+                                pairs.add(new BasicNameValuePair("gyro_freq_sdk", String.valueOf(sdkRateGyro)));
+                                pairs.add(new BasicNameValuePair("gyro_freq_ndk", String.valueOf(ndkRateGyro)));
+                                pairs.add(new BasicNameValuePair("magnetometer_latency_sdk", String.valueOf(sdkLatencyMag)));
+                                pairs.add(new BasicNameValuePair("magnetometer_latency_ndk", String.valueOf(ndkLatencyMag)));
+                                pairs.add(new BasicNameValuePair("magnetometer_freq_sdk", String.valueOf(sdkRateMag)));
+                                pairs.add(new BasicNameValuePair("magnetometer_freq_ndk", String.valueOf(ndkRateMag)));
+                                pairs.add(new BasicNameValuePair("barometer_latency_sdk", String.valueOf(sdkLatencyBaro)));
+                                pairs.add(new BasicNameValuePair("barometer_latency_ndk", String.valueOf(ndkLatencyBaro)));
+                                pairs.add(new BasicNameValuePair("barometer_freq_sdk", String.valueOf(sdkRateBaro)));
+                                pairs.add(new BasicNameValuePair("barometer_freq_ndk", String.valueOf(ndkRateBaro)));
                                 httppost.setEntity(new UrlEncodedFormEntity(pairs));
 
                                 HttpResponse response = httpclient.execute(httppost);
@@ -333,13 +347,14 @@ public class MainActivity extends Activity implements SensorEventListener {
         mButtonSendReport.setVisibility(View.INVISIBLE);
         detectOnlineState();
 
+        startSDKAccelerometer();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
 
-        startSDKAccelerometer();
+        Log.i(TAG, "onResume()");
     }
 
     private void detectOnlineState() {
@@ -610,48 +625,54 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     private void calcSensorMedians() {
 
-        long accelerometer = 0;
+        sdkLatencyAcce = 0;
 
         for (long accelerometerTime : accelerometerMeasurements) {
-            accelerometer += accelerometerTime;
+            sdkLatencyAcce += accelerometerTime;
         }
 
-        accelerometer /= SENSOR_LIMIT;
+        sdkLatencyAcce /= SENSOR_LIMIT;
 
-        long gyroscope = 0;
+        sdkLatencyGyro = 0;
 
         for (long gyroscopeTime : gyroscopeMeasurements) {
-            gyroscope += gyroscopeTime;
+            sdkLatencyGyro += gyroscopeTime;
         }
 
-        gyroscope /= SENSOR_LIMIT;
+        sdkLatencyGyro /= SENSOR_LIMIT;
 
-        long magnetometer = 0;
+        sdkLatencyMag = 0;
 
         for (long magnetometerTime : magnetometerMeasurements) {
-            magnetometer += magnetometerTime;
+            sdkLatencyMag += magnetometerTime;
         }
 
-        magnetometer /= SENSOR_LIMIT;
+        sdkLatencyMag /= SENSOR_LIMIT;
 
-        long barometer = 0;
+        sdkLatencyBaro = 0;
 
         for (long barometerTime : barometerMeasurements) {
-            barometer += barometerTime;
+            sdkLatencyBaro += barometerTime;
         }
 
-        barometer /= SENSOR_LIMIT;
+        sdkLatencyBaro /= SENSOR_LIMIT;
 
-        Log.i(TAG, "Accelerometer: " + String.valueOf(accelerometer));
-        Log.i(TAG, "Gyroscope: " + String.valueOf(gyroscope));
-        Log.i(TAG, "Magnetometer: " + String.valueOf(magnetometer));
-        Log.i(TAG, "Barometer: " + String.valueOf(barometer));
+        Log.i(TAG, "Accelerometer: " + String.valueOf(sdkLatencyAcce));
+        Log.i(TAG, "Gyroscope: " + String.valueOf(sdkLatencyGyro));
+        Log.i(TAG, "Magnetometer: " + String.valueOf(sdkLatencyMag));
+        Log.i(TAG, "Barometer: " + String.valueOf(sdkLatencyBaro));
 
         Switch.jniStartLatency();
     }
 
-    public static void ndkLatency() {
-        Log.i(TAG, "C to Java Dummy Test");
+    public static void ndkLatency(long acce, long gyro, long magneto, long baro) {
+
+        ndkLatencyAcce = acce;
+        ndkLatencyGyro = gyro;
+        ndkLatencyMag = magneto;
+        ndkLatencyBaro = baro;
+
+        Log.i(TAG, "JNI return");
 
         isLatencyMeasurement = false;
         startRateAccelerometer();
@@ -751,7 +772,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                         stopRateAccelerometer();
 
                         int rate = (int) (sdkAcceCount / (periodInNano / 1000000000));
-
+                        sdkRateAcce = rate;
                         Log.i(TAG, "Accelerometer-Rate: " + String.valueOf(rate) + " Hz");
                         startRateGyroscope();
                     }
@@ -762,6 +783,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                     } else {
                         stopRateGyroscope();
                         int rate = (int) (sdkGyroCount / (periodInNano / 1000000000));
+                        sdkRateGyro = rate;
                         Log.i(TAG, "Gyroscope-Rate: " + String.valueOf(rate) + " Hz");
                         startRateMagnetometer();
                     }
@@ -772,6 +794,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                     } else {
                         stopRateMagnetometer();
                         int rate = (int) (sdkMagCount / (periodInNano / 1000000000));
+                        sdkRateMag = rate;
                         Log.i(TAG, "MagneticField-Rate: " + String.valueOf(rate) + " Hz");
                         startRateBarometer();
                     }
@@ -782,8 +805,11 @@ public class MainActivity extends Activity implements SensorEventListener {
                     } else {
                         stopRateBarometer();
                         int rate = (int) (sdkBaroCount / (periodInNano / 1000000000));
+                        sdkRateBaro = rate;
                         Log.i(TAG, "Pressure-Rate: " + String.valueOf(rate) + " Hz");
                     }
+                    Switch.jniStartRate();
+
                     break;
             }
         }
