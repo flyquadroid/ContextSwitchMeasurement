@@ -665,7 +665,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         Switch.jniStartLatency();
     }
 
-    public static void ndkLatency(long acce, long gyro, long magneto, long baro) {
+    public static void ndkLatency(int acce, int gyro, int magneto, int baro) {
 
         ndkLatencyAcce = acce;
         ndkLatencyGyro = gyro;
@@ -676,6 +676,16 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         isLatencyMeasurement = false;
         startRateAccelerometer();
+    }
+
+    public static void ndkRate(int acce, int gyro, int magneto, int baro) {
+
+        ndkRateAcce = acce;
+        ndkRateGyro = gyro;
+        ndkRateMag = magneto;
+        ndkRateBaro = baro;
+
+        Log.i(TAG, "JNI return");
     }
 
     // Sensor Rate Measurement
@@ -807,9 +817,8 @@ public class MainActivity extends Activity implements SensorEventListener {
                         int rate = (int) (sdkBaroCount / (periodInNano / 1000000000));
                         sdkRateBaro = rate;
                         Log.i(TAG, "Pressure-Rate: " + String.valueOf(rate) + " Hz");
+                        Switch.jniStartRate();
                     }
-                    Switch.jniStartRate();
-
                     break;
             }
         }

@@ -8,7 +8,7 @@
 
 #define JNI_FALSE 0
 #define JNI_TRUE 1
-#define DEBUG 1
+#define DEBUG 0
 
 #define JNI_LIMIT 100000
 #define SENSOR_LIMIT 100
@@ -24,6 +24,7 @@ long rounds = 0;
 static JavaVM* jvm;
 jclass mClass;
 jmethodID mMethod;
+jmethodID mMethod2;
 
 long long accelerometerLatency[SENSOR_LIMIT] = {};
 long long gyroscopeLatency[SENSOR_LIMIT] = {};
@@ -32,11 +33,20 @@ long long barometerLatency[SENSOR_LIMIT] = {};
 
 int isLatencyMeasurement = 1;
 long long measurementStartTime;
-long long periodInNano = 5000000000L;
+long long periodInNano = 5000000000LL;
 int ndkAcceCount = 0;
 int ndkGyroCount = 0;
 int ndkMagCount = 0;
 int ndkBaroCount = 0;
+
+long acceAverage;
+long gyroAverage;
+long magnetoAverage;
+long baroAverage;
+int acceRate;
+int gyroRate;
+int magnetoRate;
+int baroRate;
 
 long sensorRounds = 0;
 ASensorEventQueue *sensorEventQueue;
@@ -71,13 +81,21 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved){
     	LOGI("JNIOnLoad: Could get java class");
     }
 
-    mMethod = (*env)->GetStaticMethodID(env, mClass, "ndkLatency", "(JJJJ)V");
+    mMethod = (*env)->GetStaticMethodID(env, mClass, "ndkLatency", "(IIII)V");
     if(mMethod == NULL){
     	LOGI("JNIOnLoad: Could not get method identifier");
         return JNI_ERR;
     } else {
     	LOGI("JNIOnLoad: Could get method identifier");
     }
+
+    mMethod2 = (*env)->GetStaticMethodID(env, mClass, "ndkRate", "(IIII)V");
+        if(mMethod2 == NULL){
+        	LOGI("JNIOnLoad: Could not get method identifier");
+            return JNI_ERR;
+        } else {
+        	LOGI("JNIOnLoad: Could get method identifier");
+        }
 
 	return JNI_VERSION_1_6;
 }
@@ -188,7 +206,7 @@ void startAccelerometerLatency() {
     //Sampling rate: 100Hz
     int a = ASensor_getMinDelay(accSensor);
     LOGI("min-delay: %d",a);
-    ASensorEventQueue_setEventRate(sensorEventQueue, accSensor, 1000000);
+    ASensorEventQueue_setEventRate(sensorEventQueue, accSensor, 5000);
 }
 
 void startGyroscopeLatency() {
@@ -216,7 +234,7 @@ void startGyroscopeLatency() {
         //Sampling rate: 100Hz
         int a = ASensor_getMinDelay(gyroSensor);
         LOGI("min-delay: %d",a);
-        ASensorEventQueue_setEventRate(sensorEventQueue, gyroSensor, 1000000);
+        ASensorEventQueue_setEventRate(sensorEventQueue, gyroSensor, 5000);
 }
 
 void startMagnetometerLatency() {
@@ -245,7 +263,7 @@ void startMagnetometerLatency() {
     //Sampling rate: 100Hz
     int a = ASensor_getMinDelay(magSensor);
     LOGI("min-delay: %d",a);
-    ASensorEventQueue_setEventRate(sensorEventQueue, magSensor, 1000000);
+    ASensorEventQueue_setEventRate(sensorEventQueue, magSensor, 5000);
 }
 
 void startBarometerLatency() {
@@ -275,7 +293,7 @@ void startBarometerLatency() {
         //Sampling rate: 100Hz
         int a = ASensor_getMinDelay(baroSensor);
         LOGI("min-delay: %d",a);
-        ASensorEventQueue_setEventRate(sensorEventQueue, baroSensor, 1000000);
+        ASensorEventQueue_setEventRate(sensorEventQueue, baroSensor, 5000);
     } else {
          LOGI("No Barro");
     }
@@ -288,6 +306,8 @@ JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniS
 void startAccelerometerRate() {
 
      LOGI("startAccelerometer");
+
+    measurementStartTime = getTimeNsec();
 
     ASensorEvent event;
     int events, ident;
@@ -311,13 +331,14 @@ void startAccelerometerRate() {
     //Sampling rate: 100Hz
     int a = ASensor_getMinDelay(accSensor);
     LOGI("min-delay: %d",a);
-    ASensorEventQueue_setEventRate(sensorEventQueue, accSensor, 1000000);
+    ASensorEventQueue_setEventRate(sensorEventQueue, accSensor, 5000);
 
-    measurementStartTime = getTimeNsec();
 }
 
 void startGyroscopeRate() {
     LOGI("startGyroscope");
+
+        measurementStartTime = getTimeNsec();
 
         ASensorEvent event;
         int events, ident;
@@ -341,14 +362,15 @@ void startGyroscopeRate() {
         //Sampling rate: 100Hz
         int a = ASensor_getMinDelay(gyroSensor);
         LOGI("min-delay: %d",a);
-        ASensorEventQueue_setEventRate(sensorEventQueue, gyroSensor, 1000000);
+        ASensorEventQueue_setEventRate(sensorEventQueue, gyroSensor, 5000);
 
-        measurementStartTime = getTimeNsec();
 }
 
 void startMagnetometerRate() {
 
      LOGI("startMagnetometer");
+
+     measurementStartTime = getTimeNsec();
 
     ASensorEvent event;
     int events, ident;
@@ -372,14 +394,16 @@ void startMagnetometerRate() {
     //Sampling rate: 100Hz
     int a = ASensor_getMinDelay(magSensor);
     LOGI("min-delay: %d",a);
-    ASensorEventQueue_setEventRate(sensorEventQueue, magSensor, 1000000);
+    ASensorEventQueue_setEventRate(sensorEventQueue, magSensor, 5000);
 
-    measurementStartTime = getTimeNsec();
+
 }
 
 void startBarometerRate() {
 
      LOGI("startBarometer");
+
+    measurementStartTime = getTimeNsec();
 
     ASensorEvent event;
     int events, ident;
@@ -404,12 +428,11 @@ void startBarometerRate() {
         //Sampling rate: 100Hz
         int a = ASensor_getMinDelay(baroSensor);
         LOGI("min-delay: %d",a);
-        ASensorEventQueue_setEventRate(sensorEventQueue, baroSensor, 1000000);
+        ASensorEventQueue_setEventRate(sensorEventQueue, baroSensor, 5000);
     } else {
          LOGI("No Barro");
     }
 
-    measurementStartTime = getTimeNsec();
 }
 
 JNIEXPORT void JNICALL Java_io_quadroid_ContextSwitchMeasurement_ndk_Switch_jniStartRate(JNIEnv *env, jclass clazz) {
@@ -423,7 +446,7 @@ static int get_sensor_events(int fd, int events, void* data) {
   //ASensorEventQueue* sensorEventQueue;
   while (ASensorEventQueue_getEvents(sensorEventQueue, &event, 1) > 0) {
 
-    if(isLatencyMeasurement) {
+    if(isLatencyMeasurement == 1) {
         switch(event.type){
                 case ASENSOR_TYPE_ACCELEROMETER:
                     if(sensorRounds<SENSOR_LIMIT) {
@@ -443,8 +466,8 @@ static int get_sensor_events(int fd, int events, void* data) {
                             latencies += accelerometerLatency[i];
                         }
 
-                        long long average = latencies / SENSOR_LIMIT;
-                        LOGI("AccelerometerLatency: %lld", average);
+                        acceAverage = latencies / SENSOR_LIMIT;
+                        LOGI("AccelerometerLatency: %ld", acceAverage);
 
                         startGyroscopeLatency();
                     }
@@ -467,8 +490,8 @@ static int get_sensor_events(int fd, int events, void* data) {
                             latencies += gyroscopeLatency[i];
                         }
 
-                        long long average = latencies / SENSOR_LIMIT;
-                        LOGI("GyroscopeLatency: %lld", average);
+                        gyroAverage = latencies / SENSOR_LIMIT;
+                        LOGI("GyroscopeLatency: %ld", gyroAverage);
 
                         startMagnetometerLatency();
                     }
@@ -492,8 +515,8 @@ static int get_sensor_events(int fd, int events, void* data) {
                             latencies += magnetometerLatency[i];
                         }
 
-                        long long average = latencies / SENSOR_LIMIT;
-                        LOGI("MagnetometerLatency: %lld", average);
+                        magnetoAverage = latencies / SENSOR_LIMIT;
+                        LOGI("MagnetometerLatency: %ld", magnetoAverage);
 
                         startBarometerLatency();
                     }
@@ -516,12 +539,12 @@ static int get_sensor_events(int fd, int events, void* data) {
                             latencies += barometerLatency[i];
                         }
 
-                        long average = latencies / SENSOR_LIMIT;
-                        LOGI("BarometerLatency: %ld", average);
+                        baroAverage = latencies / SENSOR_LIMIT;
+                        LOGI("BarometerLatency: %ld", baroAverage);
 
                         JNIEnv* env;
                             (*jvm)->AttachCurrentThread(jvm, &env, NULL);
-                        	(*env)->CallStaticVoidMethod(env, mClass, mMethod, (long)average, (long)average, (long)average, (long)average);
+                        	(*env)->CallStaticVoidMethod(env, mClass, mMethod, (int)acceAverage, (int)gyroAverage, (int)magnetoAverage, (int)baroAverage);
                         	//(*jvm)->DetachCurrentThread(jvm);
                     }
 
@@ -532,12 +555,13 @@ static int get_sensor_events(int fd, int events, void* data) {
             case ASENSOR_TYPE_ACCELEROMETER:
                 if ((measurementStartTime + periodInNano) >= getTimeNsec()) {
                                         ndkAcceCount++;
+                                        LOGI("acce");
                                     } else {
                                         ASensorManager_destroyEventQueue(ASensorManager_getInstance(), sensorEventQueue);
 
-                                        int rate = (int) (ndkAcceCount / (periodInNano / 1000000000));
+                                        acceRate = (int) (ndkAcceCount / (periodInNano / 1000000000.0));
 
-                        LOGI("AccelerometerRate: %d Hz", rate);
+                        LOGI("AccelerometerRate: %d Hz", acceRate);
                                         startGyroscopeRate();
                                     }
                 break;
@@ -547,9 +571,9 @@ static int get_sensor_events(int fd, int events, void* data) {
                                                    } else {
                                                        ASensorManager_destroyEventQueue(ASensorManager_getInstance(), sensorEventQueue);
 
-                                                       int rate = (int) (ndkGyroCount / (periodInNano / 1000000000));
+                                                       gyroRate = (int) (ndkGyroCount / (periodInNano / 1000000000.0));
 
-                                       LOGI("GyroRate: %d Hz", rate);
+                                       LOGI("GyroRate: %d Hz", gyroRate);
                                                        startMagnetometerRate();
                                                    }
 
@@ -560,9 +584,9 @@ static int get_sensor_events(int fd, int events, void* data) {
                                                                    } else {
                                                                        ASensorManager_destroyEventQueue(ASensorManager_getInstance(), sensorEventQueue);
 
-                                                                       int rate = (int) (ndkMagCount / (periodInNano / 1000000000));
+                                                                       magnetoRate = (int) (ndkMagCount / (periodInNano / 1000000000.0));
 
-                                                       LOGI("MagnetoRate: %d Hz", rate);
+                                                       LOGI("MagnetoRate: %d Hz", magnetoRate);
                                                                        startBarometerRate();
                                                                    }
 
@@ -574,12 +598,12 @@ static int get_sensor_events(int fd, int events, void* data) {
                                                                                    } else {
                                                                                        ASensorManager_destroyEventQueue(ASensorManager_getInstance(), sensorEventQueue);
 
-                                                                                       int rate = (int) (ndkMagCount / (periodInNano / 1000000000));
+                                                                                       baroRate = (int) (ndkMagCount / (periodInNano / 1000000000.0));
 
-                                                                       LOGI("BaroRate: %d Hz", rate);
+                                                                       LOGI("BaroRate: %d Hz", baroRate);
                                                                                        JNIEnv* env;
                                                                                                                (*jvm)->AttachCurrentThread(jvm, &env, NULL);
-                                                                                                           	(*env)->CallStaticVoidMethod(env, mClass, mMethod, rate, rate, rate, rate);
+                                                                                                           	(*env)->CallStaticVoidMethod(env, mClass, mMethod2, acceRate, gyroRate, magnetoRate, baroRate);
                                                                                    }
 
 
